@@ -12,7 +12,7 @@ namespace UnityCliConnector
     public static class Heartbeat
     {
         static readonly string s_Dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".unity-agent-cli", "instances");
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hera-agent", "instances");
 
         static double s_LastWrite;
         const double INTERVAL = 0.5;

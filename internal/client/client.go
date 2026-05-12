@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Instance represents a running Unity Editor discovered from ~/.unity-agent-cli/instances/.
+// Instance represents a running Unity Editor discovered from ~/.hera-agent/instances/.
 type Instance struct {
 	State         string `json:"state"`
 	ProjectPath   string `json:"projectPath"`
@@ -45,10 +45,10 @@ var isProcessDead = checkProcessDead
 
 func instancesDir() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".unity-agent-cli", "instances")
+	return filepath.Join(home, ".hera-agent", "instances")
 }
 
-// ScanInstances reads all instance files from ~/.unity-agent-cli/instances/.
+// ScanInstances reads all instance files from ~/.hera-agent/instances/.
 // Stale files whose PID is no longer running are automatically removed.
 func ScanInstances() ([]Instance, error) {
 	dir := instancesDir()
@@ -128,7 +128,7 @@ func FindActiveByPort(port int) (*Instance, error) {
 	return best, nil
 }
 
-// DiscoverInstance finds a running Unity instance from ~/.unity-agent-cli/instances/.
+// DiscoverInstance finds a running Unity instance from ~/.hera-agent/instances/.
 // If port > 0, matches an active instance by port.
 // If project is set, matches by project path substring.
 // Otherwise returns the most recently active instance.

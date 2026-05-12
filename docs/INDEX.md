@@ -1,10 +1,10 @@
-# unity-agent-cli — AI-Readable Documentation
+# hera-agent — AI-Readable Documentation
 
 > **For AI Agents**: This documentation is designed so that any AI reading it can immediately understand the project structure, modify code, and extend functionality without guessing.
 
 ## What This Project Is
 
-`unity-agent-cli` is a **single-binary CLI tool** (written in Go, ~800 LOC) that controls **Unity Editor** (via a C# connector, ~2300 LOC) over **plain HTTP** on localhost.
+`hera-agent` is a **single-binary CLI tool** (written in Go, ~800 LOC) that controls **Unity Editor** (via a C# connector, ~2300 LOC) over **plain HTTP** on localhost.
 
 **No WebSockets. No JSON-RPC. No Python. No persistent server process.**
 
@@ -16,14 +16,14 @@
 └─────────────────┘                     └─────────────────────┘
 ```
 
-**Repository**: `https://github.com/NotNull92/unity-agent-cli`
+**Repository**: `https://github.com/NotNull92/hera-agent`
 
 ---
 
 ## Quick Mental Model
 
 1. **Unity Editor opens** → C# `HttpServer` starts on localhost (port 8090+)
-2. **C# `Heartbeat`** writes a JSON file to `~/.unity-agent-cli/instances/<hash>.json` every 0.5s
+2. **C# `Heartbeat`** writes a JSON file to `~/.hera-agent/instances/<hash>.json` every 0.5s
 3. **Go CLI runs** → scans instance files → finds Unity → sends HTTP POST `/command`
 4. **C# `CommandRouter`** receives the command → dispatches to the right tool handler
 5. **JSON response** flows back to the terminal
@@ -47,7 +47,7 @@
 ## Directory Structure
 
 ```
-unity-agent-cli/
+hera-agent/
 ├── cmd/                          # Go CLI commands
 │   ├── root.go                   # Entry point, flag parsing, help
 │   ├── editor.go                 # editor play/stop/pause/refresh

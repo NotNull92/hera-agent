@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NotNull92/unity-agent-cli/internal/client"
+	"github.com/NotNull92/hera-agent/internal/client"
 )
 
 type suppressWriter struct {
@@ -83,7 +83,7 @@ func pollTestResults(port int) (*client.CommandResponse, error) {
 		return nil, fmt.Errorf("cannot determine home directory: %w", err)
 	}
 
-	resultsPath := filepath.Join(home, ".unity-agent-cli", "status", fmt.Sprintf("test-results-%d.json", port))
+	resultsPath := filepath.Join(home, ".hera-agent", "status", fmt.Sprintf("test-results-%d.json", port))
 	deadline := time.Now().Add(10 * time.Minute)
 
 	for time.Now().Before(deadline) {

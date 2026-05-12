@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/assets/banner_lite.png?v=2" width="50%" alt="unity-agent-cli banner">
+<img src="docs/assets/banner_lite.png?v=2" width="50%" alt="hera-agent banner">
 
 <br>
 
-[![Release](https://img.shields.io/github/v/release/NotNull92/unity-agent-cli?style=flat-square&logo=github&color=00d4aa)](https://github.com/NotNull92/unity-agent-cli/releases)
+[![Release](https://img.shields.io/github/v/release/NotNull92/hera-agent?style=flat-square&logo=github&color=00d4aa)](https://github.com/NotNull92/hera-agent/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=blue)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-%5E1.22-00ADD8?style=flat-square&logo=go)](https://go.dev)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-ff69b4?style=flat-square)]()
@@ -40,20 +40,20 @@ It is a single Go binary that talks to Unity over HTTP. The Unity-side connector
 
 **Linux / macOS**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NotNull92/unity-agent-cli/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.sh | sh
 ```
 
 **Windows**
 ```powershell
-irm https://raw.githubusercontent.com/NotNull92/unity-agent-cli/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.ps1 | iex
 ```
 
 **Or `go install`** (any platform)
 ```bash
-go install github.com/NotNull92/unity-agent-cli@latest
+go install github.com/NotNull92/hera-agent@latest
 ```
 
-**Manual** — grab the binary from [Releases](https://github.com/NotNull92/unity-agent-cli/releases) for your platform.
+**Manual** — grab the binary from [Releases](https://github.com/NotNull92/hera-agent/releases) for your platform.
 
 ---
 
@@ -63,12 +63,12 @@ go install github.com/NotNull92/unity-agent-cli@latest
 
 **Package Manager → Add package from git URL**
 ```
-https://github.com/NotNull92/unity-agent-cli.git?path=AgentConnector
+https://github.com/NotNull92/hera-agent.git?path=AgentConnector
 ```
 
 Or add to `Packages/manifest.json`:
 ```json
-"com.notnull92.hera-agent": "https://github.com/NotNull92/unity-agent-cli.git?path=AgentConnector"
+"com.notnull92.hera-agent": "https://github.com/NotNull92/hera-agent.git?path=AgentConnector"
 ```
 
 > The connector starts automatically. No configuration.
@@ -77,16 +77,16 @@ Or add to `Packages/manifest.json`:
 
 ```bash
 # Is Unity connected?
-unity-agent-cli status
+hera-agent status
 
 # Enter play mode
-unity-agent-cli editor play --wait
+hera-agent editor play --wait
 
 # Run any C# code inside Unity
-unity-agent-cli exec "return EditorSceneManager.GetActiveScene().name;"
+hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 
 # Read console errors
-unity-agent-cli console --type error
+hera-agent console --type error
 ```
 
 ---
@@ -115,16 +115,16 @@ The most powerful feature. Full runtime access. Zero boilerplate.
 
 ```bash
 # Inspect anything
-unity-agent-cli exec "return World.All.Count;" --usings Unity.Entities
+hera-agent exec "return World.All.Count;" --usings Unity.Entities
 
 # Modify the scene
-unity-agent-cli exec "var go = new GameObject(\"Temp\"); return go.name;"
+hera-agent exec "var go = new GameObject(\"Temp\"); return go.name;"
 
 # Pipe complex code via stdin (no shell escaping)
 echo '
 var scene = EditorSceneManager.GetActiveScene();
 return scene.GetRootGameObjects().Length;
-' | unity-agent-cli exec
+' | hera-agent exec
 ```
 
 Because it compiles and runs real C#, you can call **any** Unity API, inspect ECS worlds, modify assets, or invoke internal editor utilities. No custom tool needed.
@@ -162,10 +162,10 @@ public static class SpawnEnemy
 
 Call it:
 ```bash
-unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
+hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 
-`unity-agent-cli list` exposes parameter schemas so AI assistants can discover and call your tools without reading source code.
+`hera-agent list` exposes parameter schemas so AI assistants can discover and call your tools without reading source code.
 
 ---
 
@@ -187,7 +187,7 @@ unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 
 - **Stateless** — every request is independent. No reconnection dance.
-- **Auto-discovery** — scans `~/.unity-agent-cli/instances/` to find open Unity editors.
+- **Auto-discovery** — scans `~/.hera-agent/instances/` to find open Unity editors.
 - **Domain-reload safe** — connector survives script recompilation and resumes automatically.
 - **Main-thread execution** — all tool handlers run on Unity's main thread. Every API is safe.
 
@@ -195,7 +195,7 @@ unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
 
 ## Compared to MCP
 
-| | MCP Integrations | unity-agent-cli |
+| | MCP Integrations | hera-agent |
 |---|:---:|:---:|
 | **Install** | Python + uv + FastMCP + config | Single binary |
 | **Runtime deps** | WebSocket relay, persistent process | None |

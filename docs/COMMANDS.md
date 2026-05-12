@@ -1,6 +1,6 @@
 # Command Reference
 
-Complete reference of all `unity-agent-cli` commands, flags, and parameters.
+Complete reference of all `hera-agent` commands, flags, and parameters.
 
 ---
 
@@ -21,7 +21,7 @@ These flags work with any command:
 Control Unity Editor play mode and asset database.
 
 ```bash
-unity-agent-cli editor <action> [flags]
+hera-agent editor <action> [flags]
 ```
 
 ### play
@@ -33,7 +33,7 @@ Enter play mode.
 | `--wait` | Block until fully entered play mode | `false` |
 
 ```bash
-unity-agent-cli editor play --wait
+hera-agent editor play --wait
 ```
 
 ### stop
@@ -45,7 +45,7 @@ Exit play mode.
 | `--wait` | Block until fully exited play mode | `false` |
 
 ```bash
-unity-agent-cli editor stop
+hera-agent editor stop
 ```
 
 ### pause
@@ -53,7 +53,7 @@ unity-agent-cli editor stop
 Toggle pause/resume (play mode only).
 
 ```bash
-unity-agent-cli editor pause
+hera-agent editor pause
 ```
 
 ### refresh
@@ -66,8 +66,8 @@ Refresh the AssetDatabase.
 | `--compile` | Recompile scripts and wait until done | `false` |
 
 ```bash
-unity-agent-cli editor refresh --force
-unity-agent-cli editor refresh --compile
+hera-agent editor refresh --force
+hera-agent editor refresh --compile
 ```
 
 **Note**: `refresh` is blocked in play mode unless `--force` is set.
@@ -79,8 +79,8 @@ unity-agent-cli editor refresh --compile
 Execute arbitrary C# code inside Unity Editor.
 
 ```bash
-unity-agent-cli exec "<code>" [flags]
-echo '<code>' | unity-agent-cli exec [flags]
+hera-agent exec "<code>" [flags]
+echo '<code>' | hera-agent exec [flags]
 ```
 
 | Flag | Description | Default |
@@ -91,16 +91,16 @@ echo '<code>' | unity-agent-cli exec [flags]
 
 ```bash
 # Basic execution
-unity-agent-cli exec "return 1+1;"
+hera-agent exec "return 1+1;"
 
 # Unity API access
-unity-agent-cli exec "return Application.dataPath;"
+hera-agent exec "return Application.dataPath;"
 
 # Pipe to avoid shell escaping
-echo 'return EditorSceneManager.GetActiveScene().name;' | unity-agent-cli exec
+echo 'return EditorSceneManager.GetActiveScene().name;' | hera-agent exec
 
 # Custom usings for ECS
-unity-agent-cli exec "return World.All.Count;" --usings Unity.Entities
+hera-agent exec "return World.All.Count;" --usings Unity.Entities
 ```
 
 **Default usings**: `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Reflection`, `System.Threading.Tasks`, `UnityEngine`, `UnityEngine.SceneManagement`, `UnityEditor`, `UnityEditor.SceneManagement`, `UnityEditorInternal`
@@ -114,7 +114,7 @@ unity-agent-cli exec "return World.All.Count;" --usings Unity.Entities
 Read, filter, and clear Unity console logs.
 
 ```bash
-unity-agent-cli console [flags]
+hera-agent console [flags]
 ```
 
 | Flag | Description | Default |
@@ -125,10 +125,10 @@ unity-agent-cli console [flags]
 | `--clear` | Clear console after reading | `false` |
 
 ```bash
-unity-agent-cli console
-unity-agent-cli console --lines 20 --type error
-unity-agent-cli console --stacktrace full
-unity-agent-cli console --clear
+hera-agent console
+hera-agent console --lines 20 --type error
+hera-agent console --stacktrace full
+hera-agent console --clear
 ```
 
 ---
@@ -138,13 +138,13 @@ unity-agent-cli console --clear
 Execute a Unity menu item by path.
 
 ```bash
-unity-agent-cli menu "<path>"
+hera-agent menu "<path>"
 ```
 
 ```bash
-unity-agent-cli menu "File/Save Project"
-unity-agent-cli menu "Assets/Refresh"
-unity-agent-cli menu "Window/General/Console"
+hera-agent menu "File/Save Project"
+hera-agent menu "Assets/Refresh"
+hera-agent menu "Window/General/Console"
 ```
 
 **Note**: `File/Quit` is blocked for safety.
@@ -156,7 +156,7 @@ unity-agent-cli menu "Window/General/Console"
 Capture a screenshot of the Unity editor.
 
 ```bash
-unity-agent-cli screenshot [flags]
+hera-agent screenshot [flags]
 ```
 
 | Flag | Description | Default |
@@ -167,10 +167,10 @@ unity-agent-cli screenshot [flags]
 | `--output_path` | Output path (absolute or relative to project) | `Screenshots/screenshot.png` |
 
 ```bash
-unity-agent-cli screenshot
-unity-agent-cli screenshot --view game
-unity-agent-cli screenshot --width 3840 --height 2160
-unity-agent-cli screenshot --output_path captures/my_scene.png
+hera-agent screenshot
+hera-agent screenshot --view game
+hera-agent screenshot --width 3840 --height 2160
+hera-agent screenshot --output_path captures/my_scene.png
 ```
 
 ---
@@ -180,16 +180,16 @@ unity-agent-cli screenshot --output_path captures/my_scene.png
 Force reserialize assets (rewrite YAML/JSON with current Unity version).
 
 ```bash
-unity-agent-cli reserialize [path...]
+hera-agent reserialize [path...]
 ```
 
 ```bash
 # Reserialize entire project
-unity-agent-cli reserialize
+hera-agent reserialize
 
 # Reserialize specific assets
-unity-agent-cli reserialize Assets/Scenes/Main.unity
-unity-agent-cli reserialize Assets/Prefabs/A.prefab Assets/Prefabs/B.prefab
+hera-agent reserialize Assets/Scenes/Main.unity
+hera-agent reserialize Assets/Prefabs/A.prefab Assets/Prefabs/B.prefab
 ```
 
 ---
@@ -199,7 +199,7 @@ unity-agent-cli reserialize Assets/Prefabs/A.prefab Assets/Prefabs/B.prefab
 Run Unity Test Framework tests.
 
 ```bash
-unity-agent-cli test [flags]
+hera-agent test [flags]
 ```
 
 | Flag | Description | Default |
@@ -210,16 +210,16 @@ unity-agent-cli test [flags]
 
 ```bash
 # EditMode tests (synchronous)
-unity-agent-cli test
+hera-agent test
 
 # PlayMode tests (asynchronous, requires --wait)
-unity-agent-cli test --mode PlayMode --wait
+hera-agent test --mode PlayMode --wait
 
 # Filtered tests
-unity-agent-cli test --filter MyNamespace.MyClass
+hera-agent test --filter MyNamespace.MyClass
 ```
 
-**PlayMode behavior**: Returns `"running"` immediately. Results are written to `~/.unity-agent-cli/status/test-results-<port>.json`. The CLI polls this file when `--wait` is set.
+**PlayMode behavior**: Returns `"running"` immediately. Results are written to `~/.hera-agent/status/test-results-<port>.json`. The CLI polls this file when `--wait` is set.
 
 ---
 
@@ -228,7 +228,7 @@ unity-agent-cli test --filter MyNamespace.MyClass
 Control the Unity Profiler.
 
 ```bash
-unity-agent-cli profiler <action> [flags]
+hera-agent profiler <action> [flags]
 ```
 
 | Action | Description |
@@ -251,9 +251,9 @@ unity-agent-cli profiler <action> [flags]
 | `--sort` | `total` or `self` | `total` |
 
 ```bash
-unity-agent-cli profiler hierarchy
-unity-agent-cli profiler hierarchy --depth 5 --frames 30
-unity-agent-cli profiler enable
+hera-agent profiler hierarchy
+hera-agent profiler hierarchy --depth 5 --frames 30
+hera-agent profiler enable
 ```
 
 ---
@@ -263,7 +263,7 @@ unity-agent-cli profiler enable
 List all registered tools with their parameter schemas.
 
 ```bash
-unity-agent-cli list
+hera-agent list
 ```
 
 Useful for discovering custom tools added to the project.
@@ -275,7 +275,7 @@ Useful for discovering custom tools added to the project.
 Show current Unity Editor state.
 
 ```bash
-unity-agent-cli status
+hera-agent status
 ```
 
 **Output example**:
@@ -297,7 +297,7 @@ unity-agent-cli status
 Self-update the CLI binary from GitHub releases.
 
 ```bash
-unity-agent-cli update [flags]
+hera-agent update [flags]
 ```
 
 | Flag | Description | Default |
@@ -305,8 +305,8 @@ unity-agent-cli update [flags]
 | `--check` | Check for updates without installing | `false` |
 
 ```bash
-unity-agent-cli update --check
-unity-agent-cli update
+hera-agent update --check
+hera-agent update
 ```
 
 ---
@@ -316,7 +316,7 @@ unity-agent-cli update
 Show CLI version.
 
 ```bash
-unity-agent-cli version
+hera-agent version
 ```
 
 ---
@@ -326,7 +326,7 @@ unity-agent-cli version
 Manage asset configuration (interactive TUI or command-based).
 
 ```bash
-unity-agent-cli asset-config <subcommand>
+hera-agent asset-config <subcommand>
 ```
 
 | Subcommand | Description |
@@ -349,13 +349,13 @@ Any `[UnityCliTool]` class can be called directly by its snake_case name:
 
 ```bash
 # Call a custom tool directly
-unity-agent-cli my_custom_tool
+hera-agent my_custom_tool
 
 # Call with parameters
-unity-agent-cli my_custom_tool --params '{"key":"value"}'
+hera-agent my_custom_tool --params '{"key":"value"}'
 ```
 
-Use `unity-agent-cli list` to discover available tools.
+Use `hera-agent list` to discover available tools.
 
 ---
 

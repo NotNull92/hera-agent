@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-const repoAPI = "https://api.github.com/repos/NotNull92/unity-agent-cli/releases/latest"
+const repoAPI = "https://api.github.com/repos/NotNull92/hera-agent/releases/latest"
 
 type ghRelease struct {
 	TagName string    `json:"tag_name"`
@@ -133,7 +133,7 @@ func download(url string, targetDir string) (string, error) {
 		return "", fmt.Errorf("download returned %d", resp.StatusCode)
 	}
 
-	tmp, err := os.CreateTemp(targetDir, "unity-agent-cli-update-*")
+	tmp, err := os.CreateTemp(targetDir, "hera-agent-update-*")
 	if err != nil {
 		return "", err
 	}

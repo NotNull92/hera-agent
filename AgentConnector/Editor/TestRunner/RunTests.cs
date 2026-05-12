@@ -14,7 +14,7 @@ namespace UnityCliConnector.TestRunner
     public static class RunTests
     {
         internal static readonly string StatusDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".unity-agent-cli", "status");
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hera-agent", "status");
 
         public class Parameters
         {

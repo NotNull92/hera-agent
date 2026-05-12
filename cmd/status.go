@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/NotNull92/unity-agent-cli/internal/client"
+	"github.com/NotNull92/hera-agent/internal/client"
 )
 
 type instanceResolver func() (*client.Instance, error)

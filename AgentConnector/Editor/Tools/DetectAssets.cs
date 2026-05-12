@@ -73,7 +73,7 @@ namespace UnityCliConnector.Tools
             var detectedAssets = new JArray();
             var configPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".unity-agent-cli", "asset-config.json");
+                ".hera-agent", "asset-config.json");
 
             // Load existing config
             JObject config = null;

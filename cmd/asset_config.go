@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/NotNull92/unity-agent-cli/internal/assetconfig"
-	"github.com/NotNull92/unity-agent-cli/internal/tui"
+	"github.com/NotNull92/hera-agent/internal/assetconfig"
+	"github.com/NotNull92/hera-agent/internal/tui"
 	"github.com/charmbracelet/bubbletea"
 )
 
@@ -167,7 +167,7 @@ func assetConfigDetect() error {
 	// The actual detection requires Unity running with the Connector package.
 	fmt.Println("에셋 감지를 실행하려면 Unity가 실행 중이어야 합니다.")
 	fmt.Println("Unity 실행 후 아래 명령으로 감지:")
-	fmt.Println("  unity-agent-cli asset-config detect")
+	fmt.Println("  hera-agent asset-config detect")
 	fmt.Println()
 	fmt.Printf("Config path: %s\n", assetconfig.ConfigFilePath())
 	return nil
@@ -184,7 +184,7 @@ func assetConfigGet(id string) error {
 }
 
 func printAssetConfigHelp() {
-	fmt.Print(`Usage: unity-agent-cli asset-config [subcommand]
+	fmt.Print(`Usage: hera-agent asset-config [subcommand]
 
 Interactive TUI:
   asset-config                  대화형 체크박스 UI 실행 (Space로 토글)
@@ -206,10 +206,10 @@ Available Assets:
   dotween_pro                   DOTween Pro
 
 Examples:
-  unity-agent-cli asset-config
-  unity-agent-cli asset-config enable dotween
-  unity-agent-cli asset-config list
-  unity-agent-cli asset-config toggle odin_inspector
+  hera-agent asset-config
+  hera-agent asset-config enable dotween
+  hera-agent asset-config list
+  hera-agent asset-config toggle odin_inspector
 
 TUI Controls:
   ↑/k       위로 이동

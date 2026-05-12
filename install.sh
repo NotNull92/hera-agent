@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPO="NotNull92/unity-agent-cli"
+REPO="NotNull92/hera-agent"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 case "$OS" in
@@ -20,11 +20,11 @@ esac
 INSTALL_DIR="$HOME/.local/bin"
 mkdir -p "$INSTALL_DIR"
 
-URL="https://github.com/${REPO}/releases/latest/download/unity-agent-cli-${OS}-${ARCH}"
+URL="https://github.com/${REPO}/releases/latest/download/hera-agent-${OS}-${ARCH}"
 
-echo "Downloading unity-agent-cli for ${OS}/${ARCH}..."
-curl -fsSL "$URL" -o "$INSTALL_DIR/unity-agent-cli"
-chmod +x "$INSTALL_DIR/unity-agent-cli"
+echo "Downloading hera-agent for ${OS}/${ARCH}..."
+curl -fsSL "$URL" -o "$INSTALL_DIR/hera-agent"
+chmod +x "$INSTALL_DIR/hera-agent"
 
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
@@ -42,5 +42,5 @@ case ":$PATH:" in
     echo "Added $INSTALL_DIR to PATH (restart shell to apply)" ;;
 esac
 
-echo "Installed unity-agent-cli to $INSTALL_DIR/unity-agent-cli"
-"$INSTALL_DIR/unity-agent-cli" version
+echo "Installed hera-agent to $INSTALL_DIR/hera-agent"
+"$INSTALL_DIR/hera-agent" version

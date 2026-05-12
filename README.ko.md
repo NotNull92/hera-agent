@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/assets/banner_lite.png?v=2" width="50%" alt="unity-agent-cli banner">
+<img src="docs/assets/banner_lite.png?v=2" width="50%" alt="hera-agent banner">
 
 <br>
 
-[![Release](https://img.shields.io/github/v/release/NotNull92/unity-agent-cli?style=flat-square&logo=github&color=00d4aa)](https://github.com/NotNull92/unity-agent-cli/releases)
+[![Release](https://img.shields.io/github/v/release/NotNull92/hera-agent?style=flat-square&logo=github&color=00d4aa)](https://github.com/NotNull92/hera-agent/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square&color=blue)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-%5E1.22-00ADD8?style=flat-square&logo=go)](https://go.dev)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-ff69b4?style=flat-square)]()
@@ -40,20 +40,20 @@
 
 **Linux / macOS**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NotNull92/unity-agent-cli/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.sh | sh
 ```
 
 **Windows**
 ```powershell
-irm https://raw.githubusercontent.com/NotNull92/unity-agent-cli/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.ps1 | iex
 ```
 
 **또는 `go install`** (어떤 플랫폼이든)
 ```bash
-go install github.com/NotNull92/unity-agent-cli@latest
+go install github.com/NotNull92/hera-agent@latest
 ```
 
-**수동 다운로드** — [Releases](https://github.com/NotNull92/unity-agent-cli/releases)에서 플랫폼에 맞는 바이너리를 받으세요.
+**수동 다운로드** — [Releases](https://github.com/NotNull92/hera-agent/releases)에서 플랫폼에 맞는 바이너리를 받으세요.
 
 ---
 
@@ -63,12 +63,12 @@ go install github.com/NotNull92/unity-agent-cli@latest
 
 **Package Manager → Add package from git URL**
 ```
-https://github.com/NotNull92/unity-agent-cli.git?path=AgentConnector
+https://github.com/NotNull92/hera-agent.git?path=AgentConnector
 ```
 
 또는 `Packages/manifest.json`에 직접 추가:
 ```json
-"com.notnull92.hera-agent": "https://github.com/NotNull92/unity-agent-cli.git?path=AgentConnector"
+"com.notnull92.hera-agent": "https://github.com/NotNull92/hera-agent.git?path=AgentConnector"
 ```
 
 > 커넥터는 자동으로 시작됩니다. 별도 설정은 필요 없습니다.
@@ -77,16 +77,16 @@ https://github.com/NotNull92/unity-agent-cli.git?path=AgentConnector
 
 ```bash
 # Unity 연결 상태 확인
-unity-agent-cli status
+hera-agent status
 
 # Play 모드 진입
-unity-agent-cli editor play --wait
+hera-agent editor play --wait
 
 # Unity 내부에서 C# 코드 실행
-unity-agent-cli exec "return EditorSceneManager.GetActiveScene().name;"
+hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 
 # 콘솔 오류 읽기
-unity-agent-cli console --type error
+hera-agent console --type error
 ```
 
 ---
@@ -115,16 +115,16 @@ unity-agent-cli console --type error
 
 ```bash
 # 모든 것을 검사
-unity-agent-cli exec "return World.All.Count;" --usings Unity.Entities
+hera-agent exec "return World.All.Count;" --usings Unity.Entities
 
 # 씬 수정
-unity-agent-cli exec "var go = new GameObject(\"Temp\"); return go.name;"
+hera-agent exec "var go = new GameObject(\"Temp\"); return go.name;"
 
 # stdin으로 파이프 (셸 이스케이핑 문제 해결)
 echo '
 var scene = EditorSceneManager.GetActiveScene();
 return scene.GetRootGameObjects().Length;
-' | unity-agent-cli exec
+' | hera-agent exec
 ```
 
 실제 C#을 컴파일하고 실행하므로 **Unity의 모든 API를 호출할 수 있습니다.** ECS World 검색, 에셋 수정, 에디터 내부 API 호출도 모두 가능합니다. 별도의 커스힀 툴 작성이 필요 없습니다.
@@ -162,10 +162,10 @@ public static class SpawnEnemy
 
 호출:
 ```bash
-unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
+hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 
-`unity-agent-cli list`는 파라미터 스키마를 노출해서 AI 에이전트가 소스 코드를 읽지 않고도 툴을 발견하고 호출할 수 있게 합니다.
+`hera-agent list`는 파라미터 스키마를 노출해서 AI 에이전트가 소스 코드를 읽지 않고도 툴을 발견하고 호출할 수 있게 합니다.
 
 ---
 
@@ -187,7 +187,7 @@ unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 
 - **스테이트리스** — 매 요청은 독립적입니다. 재연결 로직이 없습니다.
-- **자동 발견** — `~/.unity-agent-cli/instances/`를 스캔하여 실행 중인 Unity 에디터를 찾습니다.
+- **자동 발견** — `~/.hera-agent/instances/`를 스캔하여 실행 중인 Unity 에디터를 찾습니다.
 - **도메인 리로드 대응** — 커넥터는 스크립트 재컴파일에도 살아남며 자동으로 복구합니다.
 - **메인 쓰레드 실행** — 모든 툴 핸들러는 Unity 메인 쓰레드에서 실행됩니다. 모든 API가 안전합니다.
 
@@ -195,7 +195,7 @@ unity-agent-cli spawn --x 1 --y 0 --z 5 --prefab Goblin
 
 ## MCP와 비교
 
-| | MCP 통합 | unity-agent-cli |
+| | MCP 통합 | hera-agent |
 |---|:---:|:---:|
 | **설치** | Python + uv + FastMCP + 설정 파일 | 단일 바이너리 |
 | **런타임 의존성** | WebSocket 릴레이, 영구 프로세스 | 없음 |

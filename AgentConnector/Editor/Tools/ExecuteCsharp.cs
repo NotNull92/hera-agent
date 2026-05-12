@@ -88,7 +88,7 @@ namespace UnityCliConnector.Tools
         private static object CompileAndExecute(string source, string cscOverride = null, string dotnetOverride = null)
         {
             var utf8 = new UTF8Encoding(false);
-            var tmpDir = Path.Combine(Path.GetTempPath(), "unity-agent-cli-exec");
+            var tmpDir = Path.Combine(Path.GetTempPath(), "hera-agent-exec");
             Directory.CreateDirectory(tmpDir);
 
             var id = Guid.NewGuid().ToString("N").Substring(0, 8);
@@ -191,7 +191,7 @@ namespace UnityCliConnector.Tools
                     if (alcType != null)
                     {
                         var ctor = alcType.GetConstructor(new[] { typeof(string), typeof(bool) });
-                        var alc = ctor?.Invoke(new object[] { "unity-agent-cli-exec-" + id, true });
+                        var alc = ctor?.Invoke(new object[] { "hera-agent-exec-" + id, true });
                         var loadMethod = alcType.GetMethod("LoadFromStream", new[] { typeof(System.IO.Stream) });
                         if (alc != null && loadMethod != null)
                         {
