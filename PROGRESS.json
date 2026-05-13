@@ -3,11 +3,47 @@
   "description": "CLI tool to control Unity Editor from the command line.",
   "lastUpdated": "2026-05-13",
   "current": {
-    "cli": "v0.0.6",
+    "cli": "v0.0.7",
     "connector": "0.0.2",
     "branch": "main"
   },
   "milestones": [
+    {
+      "date": "2026-05-13",
+      "type": "feat",
+      "release": { "cli": "v0.0.7" },
+      "summary": "install 후 AI agent 활용 안내 — Discover 프롬프트 + 프로젝트 규칙 고정",
+      "details": [
+        "README.md / README.ko.md Quick Start step 3 'Let your AI agent take over' 추가",
+        "Discover 안내: 'Check whether the hera-agent CLI tool is installed and explore its capabilities.' (한글: 'hera-agent cli 도구 설치되어 있는지 확인하고 파악해')",
+        "Lock in 안내: 프로젝트 CLAUDE.md / AGENTS.md에 '유니티 작업의 경우 반드시 hera-agent를 사용해' 규칙 고정 권장",
+        "install.ps1 / install.sh 마지막 출력에 동일 두 줄 안내",
+        "cmd/install.go printInstallSuccess에 동일 메시지 통합"
+      ],
+      "rationale": "설치 직후 사용자가 AI 에이전트를 어떻게 활용해야 하는지 명확히 안내. 단발 발견 + 영구 규칙 고정 두 단계로 분리해 둘 다 가능하게 함.",
+      "commits": ["60c5753"]
+    },
+    {
+      "date": "2026-05-13",
+      "type": "docs",
+      "summary": "hera-agent-pro 동기화 가이드 신설",
+      "details": [
+        "docs/porting/pro-sync-2026-05-13.md 신설",
+        "v0.0.4~v0.0.7의 install/uninstall UX 개편을 Pro에 이식하기 위한 구현 가이드 (Part A: WindowsApps 이전, Part B: AI agent 활용 안내)",
+        "이미지/배너 교체, 네임스페이스 rename, .omc/, CLAUDE.md 체크리스트, PROGRESS.json 신설은 Pro 컨텍스트 무관으로 제외"
+      ],
+      "commits": ["9b14a2d"]
+    },
+    {
+      "date": "2026-05-13",
+      "type": "docs",
+      "summary": "post-v0.0.6 자산·issue 정리",
+      "details": [
+        "README 배너: banner_lite.png → hera_lite.png 교체",
+        "docs/issues/powershell-exec-escaping.md 트래킹 (pro 버전 origin issue, path-stale-env-block.md에서 참조됨)"
+      ],
+      "commits": ["aec2b53", "914e6e5"]
+    },
     {
       "date": "2026-05-13",
       "type": "fix",
