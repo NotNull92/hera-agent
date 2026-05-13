@@ -117,7 +117,8 @@ func printUninstallSuccess() {
 	fmt.Println()
 	msg := "hera-agent has been completely removed.\n\nNo trace remains."
 	if runtime.GOOS == "windows" {
-		msg += "\n\nRestart PowerShell for PATH changes to take full effect."
+		msg += "\n\nFully close and reopen your IDE or terminal application"
+		msg += "\n(not just the terminal tab) for PATH changes to take full effect."
 	} else {
 		msg += "\n\nRestart your terminal or run 'source ~/.bashrc' (or ~/.zshrc)."
 	}

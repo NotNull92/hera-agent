@@ -273,7 +273,7 @@ This logs every request, response, and error to the Unity Console.
 | `compilation finished with errors` | Script compilation failed | Check Unity Console, fix compile errors |
 | `connection closed before response` | Unity closed connection early | Retry command; may be Unity-side timing issue |
 | Tool not found in `list` | Class missing `[HeraTool]` or wrong name | Verify attribute and class name |
-| PATH not found after install | Shell not restarted | Restart terminal or run `refreshenv` (Windows) |
+| PATH not found after install | IDE/terminal still using stale env block | Fully close and reopen the IDE or terminal app (not just the terminal tab) |
 
 ---
 
