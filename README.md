@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner_lite.png?v=2" width="50%" alt="hera-agent banner">
+<img src="docs/assets/hera_lite.png?v=2" width="50%" alt="hera-agent banner">
 
 <br>
 
