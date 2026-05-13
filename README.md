@@ -11,6 +11,24 @@
 
 **Measurement, not guessing — give AI hands on the live Editor.**
 
+<!--
+  Demo GIF placeholder — uncomment after recording:
+
+  <br><br>
+  <img src="docs/assets/demo.gif" width="80%" alt="hera-agent demo">
+
+  Recording instructions (Windows):
+  - Tool: ScreenToGif (https://www.screentogif.com/) — free, native, exports GIF directly
+  - Length: 15-25 seconds
+  - Resolution: 1280x720 recommended, 5MB max
+  - Scenario:
+      1. (3s)  hera-agent status                  → "Connected: true | Project: MyGame"
+      2. (5s)  hera-agent editor play --wait      → Unity Play Mode 진입 visible
+      3. (8s)  hera-agent exec "return Camera.main.transform.position;" → result
+      4. (5s)  hera-agent console --type error    → error logs
+  - Save to: docs/assets/demo.gif
+-->
+
 [Installation](#installation) · [Quick Start](#quick-start) · [Commands](#commands) · [Custom Tools](#custom-tools) · [Architecture](#architecture)
 
 </div>
@@ -44,22 +62,27 @@ Guessing is expensive. Measurement is the command.
 
 ## Installation
 
-**Linux / macOS**
+**macOS / Linux**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.sh | sh
 ```
 
-**Windows**
+**Windows** (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.ps1 | iex
 ```
 
-**Or `go install`** (any platform)
+<details>
+<summary>Other installation methods</summary>
+
+**`go install`** (any platform)
 ```bash
 go install github.com/NotNull92/hera-agent@latest
 ```
 
 **Manual** — grab the binary from [Releases](https://github.com/NotNull92/hera-agent/releases) for your platform.
+
+</details>
 
 ---
 
@@ -82,16 +105,16 @@ Or add to `Packages/manifest.json`:
 ### 2. Run Commands
 
 ```bash
-# Is Unity connected?
+# Is Unity even connected? (no port-finding ceremony)
 hera-agent status
 
-# Enter play mode
+# Drive Play Mode from your terminal — wait until it's actually in
 hera-agent editor play --wait
 
-# Run any C# code inside Unity
+# Run any C# directly inside Unity — no recompile, no restart
 hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 
-# Read console errors
+# Read errors AI can act on, not screenshots
 hera-agent console --type error
 ```
 

@@ -11,6 +11,24 @@
 
 **추측 대신 실측 — AI에게 살아 있는 Unity를 만지게 합니다.**
 
+<!--
+  데모 GIF placeholder — 녹화 후 아래 주석 해제:
+
+  <br><br>
+  <img src="docs/assets/demo.gif" width="80%" alt="hera-agent demo">
+
+  녹화 가이드 (Windows):
+  - 도구: ScreenToGif (https://www.screentogif.com/) — 무료, Windows 네이티브, GIF 직접 출력
+  - 길이: 15-25초
+  - 해상도: 1280x720 권장, 5MB 이하
+  - 시나리오:
+      1. (3초) hera-agent status                  → "Connected: true | Project: MyGame"
+      2. (5초) hera-agent editor play --wait      → Unity Play Mode 진입 visible
+      3. (8초) hera-agent exec "return Camera.main.transform.position;" → result
+      4. (5초) hera-agent console --type error    → error logs
+  - 저장 위치: docs/assets/demo.gif
+-->
+
 [Installation](#설치) · [Quick Start](#퀵-스타트) · [Commands](#명령어) · [Custom Tools](#커스텀-툴) · [Architecture](#구조)
 
 </div>
@@ -44,22 +62,27 @@ Hera는 명령에 응답합니다 — 추론하지 않고, 가정하지 않고. 
 
 ## 설치
 
-**Linux / macOS**
+**macOS / Linux**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.sh | sh
 ```
 
-**Windows**
+**Windows** (PowerShell)
 ```powershell
 irm https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.ps1 | iex
 ```
 
-**또는 `go install`** (어떤 플랫폼이든)
+<details>
+<summary>다른 설치 방법</summary>
+
+**`go install`** (어떤 플랫폼이든)
 ```bash
 go install github.com/NotNull92/hera-agent@latest
 ```
 
 **수동 다운로드** — [Releases](https://github.com/NotNull92/hera-agent/releases)에서 플랫폼에 맞는 바이너리를 받으세요.
+
+</details>
 
 ---
 
@@ -82,16 +105,16 @@ https://github.com/NotNull92/hera-agent.git?path=AgentConnector
 ### 2. 명령어 실행
 
 ```bash
-# Unity 연결 상태 확인
+# Unity 연결됐나? (포트 찾기 같은 거 없음)
 hera-agent status
 
-# Play 모드 진입
+# 터미널에서 Play Mode 진입 — 실제로 들어갈 때까지 대기
 hera-agent editor play --wait
 
-# Unity 내부에서 C# 코드 실행
+# C# 코드를 Unity 안에서 직접 실행 — 재컴파일도 재시작도 없음
 hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 
-# 콘솔 오류 읽기
+# 스크린샷 없이 AI가 읽고 행동할 수 있는 에러 출력
 hera-agent console --type error
 ```
 
