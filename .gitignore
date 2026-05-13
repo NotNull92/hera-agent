@@ -4,4 +4,5 @@ hera-agent
 .DS_Store
 .vscode/
 .idea/
+.omc/
 coverage.out
