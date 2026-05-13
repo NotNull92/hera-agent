@@ -3,11 +3,27 @@
   "description": "CLI tool to control Unity Editor from the command line.",
   "lastUpdated": "2026-05-13",
   "current": {
-    "cli": "v0.0.5",
+    "cli": "v0.0.6",
     "connector": "0.0.2",
     "branch": "main"
   },
   "milestones": [
+    {
+      "date": "2026-05-13",
+      "type": "fix",
+      "release": { "cli": "v0.0.6" },
+      "summary": "Windows install 위치를 WindowsApps로 이전 — IDE/Unity 재시작 강요 해소",
+      "details": [
+        "installDir: %LOCALAPPDATA%\\hera-agent → %LOCALAPPDATA%\\Microsoft\\WindowsApps (OS가 기본 PATH에 포함)",
+        "install.ps1: PATH 레지스트리 등록 제거. legacy 디렉토리·PATH 항목 자동 마이그레이션.",
+        "cmd/install.go: getInstallPaths, addToPATHWindows, cleanupLegacyInstall 갱신",
+        "cmd/uninstall_windows.go: WindowsApps 보존하면서 hera-agent.exe만 제거, legacy 위치 동반 정리, removeFromPATH 실제 레지스트리 갱신 구현",
+        "성공 메시지: 막힌 세션용 한 줄 PATH 패치 명령 안내",
+        "docs/issues/path-stale-env-block.md 문서화"
+      ],
+      "rationale": "이전엔 install 후 IDE/Unity가 옛 env block을 가진 채로 살아 있으면 PATH 인식 실패. 'Unity Hub → Unity → Rider → 터미널' 체인 구조상 사용자가 모든 부모 프로세스를 종료해야 했음. WindowsApps는 OS가 자동 PATH 포함시키므로 PATH 등록 자체가 불필요해짐.",
+      "commits": []
+    },
     {
       "date": "2026-05-13",
       "type": "fix",

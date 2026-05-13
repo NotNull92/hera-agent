@@ -48,28 +48,68 @@ func installCmd() error {
 		printDone("Set executable permission")
 	}
 
-	// Step 6: Add to PATH
-	if err := addToPATH(installDir); err != nil {
-		return printInstallError("Failed to add to PATH", err)
+	// Step 6: Clean up legacy install (older versions used %LOCALAPPDATA%\hera-agent)
+	if runtime.GOOS == "windows" {
+		cleanupLegacyInstall(installPath)
 	}
-	printDone("Added to PATH")
 
-	// Step 7: Print success
+	// Step 7: Migrate PATH (no registration needed on Windows — WindowsApps is auto-PATH)
+	if err := addToPATH(installDir); err != nil {
+		return printInstallError("Failed to update PATH", err)
+	}
+	if runtime.GOOS == "windows" {
+		printDone("Cleaned legacy PATH entries (if any)")
+	} else {
+		printDone("Added to PATH")
+	}
+
+	// Step 8: Print success
 	printInstallSuccess(installPath, exe)
 	return nil
+}
+
+// cleanupLegacyInstall removes the pre-WindowsApps binary and directory if present.
+// Skips the running binary itself (can't delete an executable that's currently running).
+func cleanupLegacyInstall(_ string) {
+	legacyDir, legacyBin := legacyInstallPaths()
+	if legacyBin == "" {
+		return
+	}
+	exe, _ := os.Executable()
+	exe, _ = filepath.EvalSymlinks(exe)
+	if _, err := os.Stat(legacyBin); err == nil && legacyBin != exe {
+		_ = os.Remove(legacyBin)
+	}
+	// Remove legacy dir if empty
+	_ = os.Remove(legacyDir)
 }
 
 func getInstallPaths() (dir, bin string) {
 	switch runtime.GOOS {
 	case "windows":
 		home, _ := os.UserHomeDir()
-		dir = filepath.Join(home, "AppData", "Local", "hera-agent")
+		// WindowsApps is on the default user PATH in Windows 10+,
+		// so installing here avoids the need to touch the PATH registry
+		// (and the env-block-staleness problems that come with it).
+		dir = filepath.Join(home, "AppData", "Local", "Microsoft", "WindowsApps")
 		bin = filepath.Join(dir, "hera-agent.exe")
 	default:
 		home, _ := os.UserHomeDir()
 		dir = filepath.Join(home, ".local", "bin")
 		bin = filepath.Join(dir, "hera-agent")
 	}
+	return
+}
+
+// legacyInstallPaths returns the pre-WindowsApps install location.
+// Used for migration cleanup.
+func legacyInstallPaths() (dir, bin string) {
+	if runtime.GOOS != "windows" {
+		return "", ""
+	}
+	home, _ := os.UserHomeDir()
+	dir = filepath.Join(home, "AppData", "Local", "hera-agent")
+	bin = filepath.Join(dir, "hera-agent.exe")
 	return
 }
 
@@ -100,11 +140,16 @@ func addToPATH(installDir string) error {
 }
 
 func addToPATHWindows(installDir string) error {
-	// Normalize User PATH: drop any existing entry pointing to installDir (including
-	// stale double-backslash variants from older installs), then prepend installDir once.
+	// installDir is %LOCALAPPDATA%\Microsoft\WindowsApps which Windows already
+	// keeps on the default user PATH. We don't need to register it.
+	// We DO want to clean any leftover legacy entries from older installs.
+	legacyDir, _ := legacyInstallPaths()
+	if legacyDir == "" {
+		return nil
+	}
 	script := `
-$dir = $args[0]
-$norm = [System.IO.Path]::GetFullPath($dir).TrimEnd('\')
+$legacy = $args[0]
+$norm = [System.IO.Path]::GetFullPath($legacy).TrimEnd('\')
 $p = [Environment]::GetEnvironmentVariable("Path", "User")
 $entries = if ($p) { $p -split ';' } else { @() }
 $filtered = $entries | Where-Object {
@@ -112,10 +157,10 @@ $filtered = $entries | Where-Object {
     try { return ([System.IO.Path]::GetFullPath($_).TrimEnd('\')) -ne $norm }
     catch { return $true }
 }
-$new = ((@($dir) + $filtered) | Where-Object { $_ }) -join ';'
+$new = $filtered -join ';'
 if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }
 `
-	return runPowerShellWithArgs(script, installDir)
+	return runPowerShellWithArgs(script, legacyDir)
 }
 
 func addToPATHUnix(installDir string) error {
@@ -191,8 +236,11 @@ func printInstallSuccess(installedPath, originalPath string) {
 
 	if runtime.GOOS == "windows" {
 		msg += fmt.Sprintf("\nYou can now delete the original file:\n  %s\n", originalPath)
-		msg += "\nFully close and reopen your IDE or terminal application"
-		msg += "\n(not just the terminal tab) to use 'hera-agent' from PATH."
+		msg += "\nAny NEW terminal or IDE picks up 'hera-agent' automatically"
+		msg += "\n(WindowsApps is on the default user PATH)."
+		msg += "\n\nIf an already-open terminal still doesn't see it, run:"
+		msg += "\n  $env:Path = [Environment]::GetEnvironmentVariable(\"Path\",\"User\")"
+		msg += " + \";\" + [Environment]::GetEnvironmentVariable(\"Path\",\"Machine\")"
 	} else {
 		msg += "\nRun 'source ~/.bashrc' (or ~/.zshrc) or restart your terminal."
 	}

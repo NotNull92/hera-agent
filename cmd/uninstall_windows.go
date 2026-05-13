@@ -8,35 +8,37 @@ import (
 )
 
 func removeFromPATH(installDir string) error {
-	// Remove from User PATH
-	userPath, err := getUserPath()
-	if err != nil {
+	// installDir is %LOCALAPPDATA%\Microsoft\WindowsApps — a Windows-managed
+	// directory that's on the default user PATH. Removing it would break every
+	// Store-app alias on the system. Leave it alone.
+	//
+	// Only legacy hera-agent PATH entries (from pre-WindowsApps installs)
+	// need cleanup.
+	legacyDir, _ := legacyInstallPaths()
+	if legacyDir == "" {
+		return nil
+	}
+	script := `
+$legacy = $args[0]
+$norm = [System.IO.Path]::GetFullPath($legacy).TrimEnd('\')
+$p = [Environment]::GetEnvironmentVariable("Path", "User")
+$entries = if ($p) { $p -split ';' } else { @() }
+$filtered = $entries | Where-Object {
+    if (-not $_) { return $false }
+    try { return ([System.IO.Path]::GetFullPath($_).TrimEnd('\')) -ne $norm }
+    catch { return $true }
+}
+$new = $filtered -join ';'
+if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }
+`
+	if err := runPowerShellWithArgs(script, legacyDir); err != nil {
 		return err
 	}
-	newPath := removePathEntry(userPath, installDir)
-	if newPath != userPath {
-		if err := setUserPath(newPath); err != nil {
-			return err
-		}
-	}
 
-	// Update current session
+	// Update current session for good measure
 	currentPath := os.Getenv("PATH")
-	newCurrentPath := removePathEntry(currentPath, installDir)
+	newCurrentPath := removePathEntry(currentPath, legacyDir)
 	_ = os.Setenv("PATH", newCurrentPath)
-	return nil
-}
-
-func getUserPath() (string, error) {
-	// Try registry first, fallback to environment
-	return os.Getenv("PATH"), nil
-}
-
-func setUserPath(newPath string) error {
-	// On Windows, we can't easily modify registry from Go without cgo/win32 APIs
-	// The install.ps1 already handles PATH via [Environment]::SetEnvironmentVariable
-	// For uninstall, we'll document that user may need to manually remove from PATH
-	// or restart shell. Here we just return nil since we cleaned current session.
 	return nil
 }
 
@@ -47,8 +49,18 @@ func removeBinaryAndDir(exe, installDir string) error {
 			return rmErr
 		}
 	}
-	// Remove installDir if empty
-	_ = os.Remove(installDir)
+	// installDir is WindowsApps (a shared OS directory) — never remove it.
+	// We only own the binary inside.
+
+	// Also clean up the legacy install location (%LOCALAPPDATA%\hera-agent)
+	// in case the user migrated and we never cleaned it up.
+	legacyDir, legacyBin := legacyInstallPaths()
+	if legacyBin != "" {
+		if _, err := os.Stat(legacyBin); err == nil && legacyBin != exe {
+			_ = os.Remove(legacyBin)
+		}
+		_ = os.Remove(legacyDir)
+	}
 
 	// Also remove the running binary itself if it's outside installDir
 	if exe != "" && exe != binPath {
