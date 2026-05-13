@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/NotNull92/hera-agent/internal/tui"
 )
 
 func installCmd() error {
@@ -210,47 +212,47 @@ func runPowerShellWithArgs(script string, args ...string) error {
 
 func printInstallHeader() {
 	fmt.Println()
-	fmt.Println("  hera-agent install")
-	fmt.Println("  Installing hera-agent to your system...")
+	fmt.Println(tui.TitleStyle.Render("  Hera Agent — Commissioning"))
+	fmt.Println(tui.InfoStyle.Render("  Establishing your estate..."))
 	fmt.Println()
 }
 
 func printStep(label, value string) {
-	fmt.Printf("  %s: %s\n", label, value)
+	fmt.Printf("  %s %s\n", tui.LabelStyle.Render(label+":"), tui.PathStyle.Render(value))
 }
 
 func printDone(msg string) {
-	fmt.Printf("  ✓ %s\n", msg)
+	fmt.Printf("  %s %s\n", tui.CheckStyle.Render("✓"), msg)
 }
 
 func printInstallError(context string, err error) error {
 	fmt.Println()
-	fmt.Printf("  ✗ %s: %v\n", context, err)
+	fmt.Printf("  %s %s: %v\n", tui.ErrorStyle.Render("✗"), tui.LabelStyle.Render(context), err)
 	fmt.Println()
 	return fmt.Errorf("%s: %w", context, err)
 }
 
 func printInstallSuccess(installedPath, originalPath string) {
 	fmt.Println()
-	msg := fmt.Sprintf("hera-agent installed successfully!\n\nInstalled to:\n  %s\n", installedPath)
+	msg := fmt.Sprintf("Your instrument has been commissioned.\n\nEstablished at:\n  %s\n", installedPath)
 
 	if runtime.GOOS == "windows" {
 		msg += fmt.Sprintf("\nYou can now delete the original file:\n  %s\n", originalPath)
-		msg += "\nAny NEW terminal or IDE picks up 'hera-agent' automatically"
-		msg += "\n(WindowsApps is on the default user PATH)."
-		msg += "\n\nIf an already-open terminal still doesn't see it, run:"
+		msg += "\nAny NEW terminal or IDE will recognize 'hera-agent' immediately"
+		msg += "\n(WindowsApps resides on the default user PATH)."
+		msg += "\n\nShould an open terminal not yet recognize it, refresh with:"
 		msg += "\n  $env:Path = [Environment]::GetEnvironmentVariable(\"Path\",\"User\")"
 		msg += " + \";\" + [Environment]::GetEnvironmentVariable(\"Path\",\"Machine\")"
 	} else {
-		msg += "\nRun 'source ~/.bashrc' (or ~/.zshrc) or restart your terminal."
+		msg += "\nRun 'source ~/.bashrc' (or ~/.zshrc), or restart your terminal."
 	}
 
-	msg += "\n\nNext, get your AI agent to use it:"
-	msg += "\n  - Discover: ask Claude Code CLI or Codex in any terminal:"
-	msg += "\n      \"Check whether the hera-agent CLI tool is installed and explore its capabilities.\""
-	msg += "\n  - Lock in (recommended): add to your project's CLAUDE.md / AGENTS.md:"
-	msg += "\n      \"For any Unity work, always use hera-agent.\""
+	msg += "\n\nNext, instruct your agent to employ it:"
+	msg += "\n  - Discover: inquire of Claude Code CLI or Codex in any terminal:"
+	msg += "\n      \"Verify that hera-agent is installed and survey its capabilities.\""
+	msg += "\n  - Commission (recommended): add to your project's CLAUDE.md / AGENTS.md:"
+	msg += "\n      \"For all Unity endeavours, employ hera-agent.\""
 
-	fmt.Println(msg)
+	fmt.Println(tui.BoxAccent.Render(tui.SuccessStyle.Render(msg)))
 	fmt.Println()
 }
