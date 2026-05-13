@@ -100,7 +100,21 @@ func addToPATH(installDir string) error {
 }
 
 func addToPATHWindows(installDir string) error {
-	script := `$dir = $args[0]; $p = [Environment]::GetEnvironmentVariable("Path", "User"); if ($p -notlike ("*" + $dir + "*")) { [Environment]::SetEnvironmentVariable("Path", ($dir + ";" + $p), "User") }`
+	// Normalize User PATH: drop any existing entry pointing to installDir (including
+	// stale double-backslash variants from older installs), then prepend installDir once.
+	script := `
+$dir = $args[0]
+$norm = [System.IO.Path]::GetFullPath($dir).TrimEnd('\')
+$p = [Environment]::GetEnvironmentVariable("Path", "User")
+$entries = if ($p) { $p -split ';' } else { @() }
+$filtered = $entries | Where-Object {
+    if (-not $_) { return $false }
+    try { return ([System.IO.Path]::GetFullPath($_).TrimEnd('\')) -ne $norm }
+    catch { return $true }
+}
+$new = ((@($dir) + $filtered) | Where-Object { $_ }) -join ';'
+if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }
+`
 	return runPowerShellWithArgs(script, installDir)
 }
 
@@ -177,7 +191,8 @@ func printInstallSuccess(installedPath, originalPath string) {
 
 	if runtime.GOOS == "windows" {
 		msg += fmt.Sprintf("\nYou can now delete the original file:\n  %s\n", originalPath)
-		msg += "\nRestart PowerShell to use 'hera-agent' from PATH."
+		msg += "\nFully close and reopen your IDE or terminal application"
+		msg += "\n(not just the terminal tab) to use 'hera-agent' from PATH."
 	} else {
 		msg += "\nRun 'source ~/.bashrc' (or ~/.zshrc) or restart your terminal."
 	}
