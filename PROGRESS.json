@@ -3,11 +3,46 @@
   "description": "CLI tool to control Unity Editor from the command line.",
   "lastUpdated": "2026-05-13",
   "current": {
-    "cli": "v0.0.3",
+    "cli": "v0.0.5",
     "connector": "0.0.2",
     "branch": "main"
   },
   "milestones": [
+    {
+      "date": "2026-05-13",
+      "type": "fix",
+      "release": { "cli": "v0.0.5" },
+      "summary": "uninstall 메시지·DEVELOPMENT.md PATH 안내 일관성 정리",
+      "details": [
+        "cmd/uninstall.go: 'Restart PowerShell' → IDE/터미널 앱 자체 재시작 명시 (install 메시지와 일관)",
+        "docs/DEVELOPMENT.md Common Issues: PATH 인식 실패 케이스를 stale env block 관점으로 갱신"
+      ],
+      "commits": ["053d987"]
+    },
+    {
+      "date": "2026-05-13",
+      "type": "fix",
+      "release": { "cli": "v0.0.4" },
+      "summary": "Windows PATH 더블 백슬래시 버그 + IDE 인식 누락 안내",
+      "details": [
+        "install.ps1: '$env:LOCALAPPDATA\\\\hera-agent' → '\\hera-agent' (PS 더블쿼트에서 \\는 이스케이프가 아님)",
+        "PATH 정규화 마이그레이션: 기존에 박힌 \\\\hera-agent 항목을 제거하고 \\hera-agent 단일 prepend",
+        "cmd/install.go addToPATHWindows에 동일 로직 적용 (-notlike 패턴 매치 실패 해소)",
+        "성공 메시지: IDE/터미널 앱 자체 재시작 명시"
+      ],
+      "commits": ["19f9630"]
+    },
+    {
+      "date": "2026-05-13",
+      "type": "docs",
+      "summary": "PROGRESS.json·CLAUDE.md 체크리스트·.gitignore 정리 (post-v0.0.3)",
+      "details": [
+        ".gitignore에 .omc/ 추가",
+        "CLAUDE.md 변경 시 체크리스트에 docs/ 및 CLAUDE.md 항목 추가",
+        "PROGRESS.json 신설"
+      ],
+      "commits": ["436d188", "37e719d", "5635bb1"]
+    },
     {
       "date": "2026-05-13",
       "type": "refactor",
@@ -25,7 +60,7 @@
       ],
       "breaking": true,
       "migration": "외부 커스텀 도구는 'using HeraAgent;' + [HeraTool]로 변경 필요",
-      "commits": ["b2719bd", "436d188", "37e719d"]
+      "commits": ["b2719bd"]
     },
     {
       "date": "2026-05-13",
