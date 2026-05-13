@@ -50,7 +50,7 @@ namespace HeraAgent
                     if (found != null)
                     {
                         UnityEngine.Debug.LogError(
-                            $"[UnityCliConnector] Duplicate tool '{command}': " +
+                            $"[Hera] Duplicate tool '{command}': " +
                             $"{foundType.FullName} and {type.FullName}. Using first found.");
                         continue;
                     }
@@ -86,7 +86,7 @@ namespace HeraAgent
                     if (nameToType.TryGetValue(name, out var existing))
                     {
                         UnityEngine.Debug.LogError(
-                            $"[UnityCliConnector] Duplicate tool name '{name}': " +
+                            $"[Hera] Duplicate tool name '{name}': " +
                             $"{existing.FullName} and {type.FullName}. " +
                             $"Rename one or remove the duplicate.");
                         continue;

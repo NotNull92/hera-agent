@@ -25,7 +25,7 @@ namespace HeraAgent
             set
             {
                 _enabled = value;
-                Debug.Log($"[UnityCliConnector] Debug logging {(value ? "enabled" : "disabled")}");
+                Debug.Log($"[Hera] Debug logging {(value ? "enabled" : "disabled")}");
             }
         }
 
@@ -33,21 +33,21 @@ namespace HeraAgent
         {
             if (!Enabled) return;
 
-            Debug.Log($"[UnityCliConnector] Request: {command} | Params: {parameters?.ToString(Formatting.Indented) ?? "null"}");
+            Debug.Log($"[Hera] Request: {command} | Params: {parameters?.ToString(Formatting.Indented) ?? "null"}");
         }
 
         public static void LogResponse(string command, object response)
         {
             if (!Enabled) return;
 
-            Debug.Log($"[UnityCliConnector] Response for {command}: {JsonConvert.SerializeObject(response, Formatting.Indented)}");
+            Debug.Log($"[Hera] Response for {command}: {JsonConvert.SerializeObject(response, Formatting.Indented)}");
         }
 
         public static void LogError(string command, Exception ex)
         {
             if (!Enabled) return;
 
-            Debug.LogError($"[UnityCliConnector] Error for {command}: {ex.Message}\n{ex.StackTrace}");
+            Debug.LogError($"[Hera] Error for {command}: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -108,7 +108,7 @@ namespace HeraAgent
 
                     _ = ListenLoop(s_Cts.Token);
 
-                    Debug.Log($"[UnityCliConnector] HTTP server started on port {port}");
+                    Debug.Log($"[Hera] HTTP server started on port {port}");
                     return;
                 }
                 catch (HttpListenerException)
@@ -121,7 +121,7 @@ namespace HeraAgent
                 }
             }
 
-            Debug.LogError("[UnityCliConnector] Failed to start HTTP server — no available port");
+            Debug.LogError("[Hera] Failed to start HTTP server — no available port");
         }
 
         static void StopListener()
@@ -148,7 +148,7 @@ namespace HeraAgent
         {
             var port = s_Port;
             StopListener();
-            Debug.Log($"[UnityCliConnector] HTTP server stopped (was port {port})");
+            Debug.Log($"[Hera] HTTP server stopped (was port {port})");
         }
 
         static void ForceEditorUpdate()

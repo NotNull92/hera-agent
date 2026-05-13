@@ -144,7 +144,7 @@ namespace HeraAgent.TestRunner
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[UnityCliConnector] Failed to write test results: {ex.Message}");
+                Debug.LogError($"[Hera] Failed to write test results: {ex.Message}");
             }
         }
 

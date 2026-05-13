@@ -36,12 +36,12 @@ namespace HeraAgent.Tools
             if (paths == null || paths.Length == 0)
             {
                 AssetDatabase.ForceReserializeAssets();
-                Debug.Log("[UnityCliConnector] ForceReserializeAssets: entire project");
+                Debug.Log("[Hera] ForceReserializeAssets: entire project");
                 return new SuccessResponse("Reserialized entire project");
             }
 
             AssetDatabase.ForceReserializeAssets(paths);
-            Debug.Log($"[UnityCliConnector] ForceReserializeAssets: {string.Join(", ", paths)}");
+            Debug.Log($"[Hera] ForceReserializeAssets: {string.Join(", ", paths)}");
             return new SuccessResponse($"Reserialized {paths.Length} asset(s)", new { paths });
         }
     }

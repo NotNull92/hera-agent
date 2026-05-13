@@ -161,7 +161,7 @@ namespace HeraAgent.Tools
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[UnityCliConnector] Failed to save asset config: {ex.Message}");
+                    Debug.LogWarning($"[Hera] Failed to save asset config: {ex.Message}");
                 }
             }
 

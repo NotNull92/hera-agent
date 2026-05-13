@@ -46,7 +46,7 @@ namespace HeraAgent.Tools
             }
             catch (Exception e)
             {
-                Debug.LogError($"[UnityCliConnector] ReadConsole init failed: {e.Message}");
+                Debug.LogError($"[Hera] ReadConsole init failed: {e.Message}");
                 _startGettingEntriesMethod = _endGettingEntriesMethod = _clearMethod = _getCountMethod = _getEntryMethod = null;
                 _modeField = _messageField = _fileField = _lineField = null;
                 _logEntryType = null;

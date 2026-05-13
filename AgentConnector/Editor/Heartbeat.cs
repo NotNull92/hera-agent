@@ -109,7 +109,7 @@ namespace HeraAgent
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.LogError($"[UnityCliConnector] Heartbeat write failed: {ex.Message}");
+                UnityEngine.Debug.LogError($"[Hera] Heartbeat write failed: {ex.Message}");
             }
         }
 

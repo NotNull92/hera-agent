@@ -108,7 +108,7 @@
         "README/docs/cmd help/CLAUDE.md 예제 코드 갱신",
         ".gitignore: unity-cli → hera-agent (실 빌드 산출물 반영)",
         "docs/DEVELOPMENT.md의 미사용 UNITY_AGENT_CLI_PORT 블록 제거",
-        "Debug.Log 내부 [UnityCliConnector] 프리픽스는 의도적으로 보존"
+        "Debug.Log 낸부 [UnityCliConnector] 프리픽스 → [Hera]로 통일 완료"
       ],
       "breaking": true,
       "migration": "외부 커스텀 도구는 'using HeraAgent;' + [HeraTool]로 변경 필요",
