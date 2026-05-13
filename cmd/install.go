@@ -245,6 +245,12 @@ func printInstallSuccess(installedPath, originalPath string) {
 		msg += "\nRun 'source ~/.bashrc' (or ~/.zshrc) or restart your terminal."
 	}
 
+	msg += "\n\nNext, get your AI agent to use it:"
+	msg += "\n  - Discover: ask Claude Code CLI or Codex in any terminal:"
+	msg += "\n      \"Check whether the hera-agent CLI tool is installed and explore its capabilities.\""
+	msg += "\n  - Lock in (recommended): add to your project's CLAUDE.md / AGENTS.md:"
+	msg += "\n      \"For any Unity work, always use hera-agent.\""
+
 	fmt.Println(msg)
 	fmt.Println()
 }

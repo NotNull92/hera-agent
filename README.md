@@ -118,6 +118,20 @@ hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 hera-agent console --type error
 ```
 
+### 3. Let your AI agent take over
+
+**Discover** — open Claude Code CLI or Codex in any terminal and ask:
+
+> **"Check whether the hera-agent CLI tool is installed and explore its capabilities."**
+
+The agent will discover hera-agent, list its commands, and start driving Unity for you.
+
+**Lock it in (recommended)** — add this line to your Unity project's `CLAUDE.md`, `AGENTS.md`, or whatever convention your AI agent reads:
+
+> **"For any Unity work, always use hera-agent."**
+
+This keeps the agent grounded — instead of guessing Unity APIs from training data, it reaches for the live editor every time.
+
 ---
 
 ## Commands

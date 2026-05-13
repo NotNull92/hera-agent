@@ -54,4 +54,10 @@ Write-Host "If an ALREADY-OPEN terminal still doesn't see it, refresh its"
 Write-Host "PATH in that session with:"
 Write-Host '    $env:Path = [Environment]::GetEnvironmentVariable("Path","User") + ";" + [Environment]::GetEnvironmentVariable("Path","Machine")'
 Write-Host ""
+Write-Host "Next, get your AI agent to use it:"
+Write-Host "  - Discover: ask Claude Code CLI or Codex in any terminal:"
+Write-Host '      "Check whether the hera-agent CLI tool is installed and explore its capabilities."'
+Write-Host "  - Lock in (recommended): add to your project's CLAUDE.md / AGENTS.md:"
+Write-Host '      "For any Unity work, always use hera-agent."'
+Write-Host ""
 & $exe version

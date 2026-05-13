@@ -118,6 +118,20 @@ hera-agent exec "return EditorSceneManager.GetActiveScene().name;"
 hera-agent console --type error
 ```
 
+### 3. AI 에이전트에게 넘기기
+
+**발견** — 터미널에서 Claude Code CLI 또는 Codex를 열고 입력:
+
+> **"hera-agent cli 도구 설치되어 있는지 확인하고 파악해"**
+
+에이전트가 hera-agent를 발견해서 명령어를 나열하고, 알아서 Unity를 조종하기 시작합니다.
+
+**규칙으로 고정 (권장)** — Unity 프로젝트의 `CLAUDE.md`, `AGENTS.md` 등 AI 에이전트가 읽는 설정 문서에 다음 한 줄을 추가하세요:
+
+> **"유니티 작업의 경우 반드시 hera-agent를 사용해"**
+
+매번 LLM이 학습 데이터에서 Unity API를 추측하는 대신, 항상 라이브 에디터에 손을 뻗게 만듭니다.
+
 ---
 
 ## 명령어

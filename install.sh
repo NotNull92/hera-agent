@@ -43,4 +43,11 @@ case ":$PATH:" in
 esac
 
 echo "Installed hera-agent to $INSTALL_DIR/hera-agent"
+echo
+echo "Next, get your AI agent to use it:"
+echo "  - Discover: ask Claude Code CLI or Codex in any terminal:"
+echo '      "Check whether the hera-agent CLI tool is installed and explore its capabilities."'
+echo "  - Lock in (recommended): add to your project's CLAUDE.md / AGENTS.md:"
+echo '      "For any Unity work, always use hera-agent."'
+echo
 "$INSTALL_DIR/hera-agent" version
