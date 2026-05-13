@@ -7,7 +7,7 @@ using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace UnityCliConnector.TestRunner
+namespace HeraAgent.TestRunner
 {
     /// <summary>
     /// Survives domain reloads via [InitializeOnLoad].

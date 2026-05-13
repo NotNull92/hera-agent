@@ -16,7 +16,7 @@ internal/client/      # Unity HTTP client, instance discovery
 AgentConnector/      # C# Unity Editor package (UPM)
   Editor/
     Core/             # Shared utilities (Response, ParamCoercion, ToolParams, StringCaseUtility)
-    Tools/            # Tool implementations (auto-registered via [UnityCliTool] attribute)
+    Tools/            # Tool implementations (auto-registered via [HeraTool] attribute)
     TestRunner/       # Test runner (RunTests, TestRunnerState)
 ```
 
@@ -24,7 +24,7 @@ AgentConnector/      # C# Unity Editor package (UPM)
 
 ### Adding a Command
 
-1. Add a C# tool in `AgentConnector/Editor/Tools/` with `[UnityCliTool(Name = "command_name")]`
+1. Add a C# tool in `AgentConnector/Editor/Tools/` with `[HeraTool(Name = "command_name")]`
 2. CLI command name matches the tool name — default passthrough handles dispatch
 3. Positional args arrive as `args` array, flags as named params
 4. Go-side code is only needed for polling/waiting logic (editor, test)

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
     /// Routes incoming command requests to the appropriate tool handler.

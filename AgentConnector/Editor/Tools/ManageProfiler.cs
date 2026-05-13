@@ -6,9 +6,9 @@ using UnityEditor.Profiling;
 using UnityEditorInternal;
 using UnityEngine;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Name = "profiler", Description = "Control Unity Profiler. Actions: hierarchy, enable, disable, status, clear.")]
+    [HeraTool(Name = "profiler", Description = "Control Unity Profiler. Actions: hierarchy, enable, disable, status, clear.")]
     public static class ManageProfiler
     {
         public class Parameters

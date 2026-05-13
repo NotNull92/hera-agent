@@ -5,9 +5,9 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditorInternal;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Description = "Controls Unity editor state. Actions: play, stop, pause, set_active_tool, add_tag, remove_tag, add_layer, remove_layer.")]
+    [HeraTool(Description = "Controls Unity editor state. Actions: play, stop, pause, set_active_tool, add_tag, remove_tag, add_layer, remove_layer.")]
     public static class ManageEditor
     {
         private const int FirstUserLayerIndex = 8;

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     public static class StringCaseUtility
     {

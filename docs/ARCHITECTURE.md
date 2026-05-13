@@ -13,7 +13,7 @@ This document describes how the Go CLI and C# Unity connector communicate, how s
 │                        │                   │   - CommandRouter             │
 │  • cmd/               │                   │   - ToolDiscovery             │
 │  • internal/          │                   │   - Heartbeat                 │
-│  • tools/ (registry)  │                   │   - [UnityCliTool] classes    │
+│  • tools/ (registry)  │                   │   - [HeraTool] classes        │
 └──────────────────────┘                   └───────────────────────────┘
            ▲                                                 │
            │                                                 │

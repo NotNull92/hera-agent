@@ -8,9 +8,9 @@ using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace UnityCliConnector.TestRunner
+namespace HeraAgent.TestRunner
 {
-    [UnityCliTool(Description = "Run Unity EditMode or PlayMode tests and return results.")]
+    [HeraTool(Description = "Run Unity EditMode or PlayMode tests and return results.")]
     public static class RunTests
     {
         internal static readonly string StatusDir = Path.Combine(

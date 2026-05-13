@@ -165,10 +165,10 @@ return scene.GetRootGameObjects().Length;
 C# 클래스를 Editor 어셈블리에 두면 자동으로 발견됩니다.
 
 ```csharp
-using UnityCliConnector;
+using HeraAgent;
 using Newtonsoft.Json.Linq;
 
-[UnityCliTool(Name = "spawn", Group = "gameplay")]
+[HeraTool(Name = "spawn", Group = "gameplay")]
 public static class SpawnEnemy
 {
     public class Parameters
@@ -209,7 +209,7 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 │ • 명령 전송 │         │  └──────────┬──────────┘    │
 │ • 결과 출력  │         │             │ 리플렉션      │
 │             │         │  ┌──────────▼──────────┐    │
-└─────────────┘         │  │   [UnityCliTool]    │    │
+└─────────────┘         │  │   [HeraTool]        │    │
                         │  │   클래스            │    │
                         │  └─────────────────────┘    │
                         └─────────────────────────────┘

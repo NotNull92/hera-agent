@@ -1,6 +1,6 @@
 using System;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
     /// Marks a static class as a CLI tool handler.
@@ -8,7 +8,7 @@ namespace UnityCliConnector
     /// Class name is auto-converted to snake_case for the command name.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class)]
-    public class UnityCliToolAttribute : Attribute
+    public class HeraToolAttribute : Attribute
     {
         public string Description { get; set; } = "";
         public string Name { get; set; }

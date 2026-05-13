@@ -393,7 +393,7 @@ Use "hera-agent <command> --help" for more information about a command.
 Notes:
   - Unity must be open with the Connector package installed
   - Multiple Unity instances: use --port or --project to select
-  - Custom tools: any [UnityCliTool] class is auto-discovered
+  - Custom tools: any [HeraTool] class is auto-discovered
   - Run 'list' to see all available tools
 `)
 }
@@ -600,12 +600,12 @@ Examples:
 Custom tools are C# classes that run inside Unity Editor. The CLI
 discovers them automatically via reflection.
 
-Create a static class with [UnityCliTool] in any Editor assembly:
+Create a static class with [HeraTool] in any Editor assembly:
 
-    using UnityCliConnector;
+    using HeraAgent;
     using Newtonsoft.Json.Linq;
 
-    [UnityCliTool(Description = "Spawn an enemy at a position")]
+    [HeraTool(Description = "Spawn an enemy at a position")]
     public static class SpawnEnemy
     {
         public class Parameters
@@ -628,7 +628,7 @@ Rules:
   - Return SuccessResponse(message, data) or ErrorResponse(message)
   - Add Parameters class with [ToolParameter] for discoverability
   - Class name auto-converts to snake_case (SpawnEnemy → spawn_enemy)
-  - Override name: [UnityCliTool(Name = "my_name")]
+  - Override name: [HeraTool(Name = "my_name")]
   - Runs on Unity main thread — all Unity APIs are safe
   - Discovered on Editor start and after every script recompilation
   - Duplicate tool names are detected and logged as errors (first wins)

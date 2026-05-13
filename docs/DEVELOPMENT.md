@@ -59,7 +59,7 @@ https://github.com/NotNull92/hera-agent.git?path=AgentConnector
 
 ### 2. Assembly Definition
 
-The connector uses `UnityCliConnector.asmdef`. If your custom tools need additional assembly references, add them to your own asmdef, not the connector's.
+The connector uses `HeraAgent.asmdef`. If your custom tools need additional assembly references, add them to your own asmdef, not the connector's.
 
 ### 3. Build Settings
 
@@ -249,10 +249,6 @@ GitHub Actions workflows:
 ### Go CLI Debugging
 
 ```bash
-# Force specific port
-export UNITY_AGENT_CLI_PORT=8090
-go run . editor play --wait
-
 # Verbose output
 hera-agent status --timeout 60000
 ```
@@ -263,7 +259,7 @@ Enable debug logging in Unity:
 
 ```csharp
 // In Unity Console (during play mode or via startup)
-UnityCliConnector.DebugLogging.Enabled = true;
+HeraAgent.DebugLogging.Enabled = true;
 ```
 
 This logs every request, response, and error to the Unity Console.
@@ -276,7 +272,7 @@ This logs every request, response, and error to the Unity Console.
 | `cannot connect to Unity at port X` | Wrong port or Unity crashed | Check `hera-agent status`, verify port |
 | `compilation finished with errors` | Script compilation failed | Check Unity Console, fix compile errors |
 | `connection closed before response` | Unity closed connection early | Retry command; may be Unity-side timing issue |
-| Tool not found in `list` | Class missing `[UnityCliTool]` or wrong name | Verify attribute and class name |
+| Tool not found in `list` | Class missing `[HeraTool]` or wrong name | Verify attribute and class name |
 | PATH not found after install | Shell not restarted | Restart terminal or run `refreshenv` (Windows) |
 
 ---

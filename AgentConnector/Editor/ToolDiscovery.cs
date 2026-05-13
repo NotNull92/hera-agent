@@ -4,10 +4,10 @@ using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
-    /// Finds [UnityCliTool] handlers on demand via reflection.
+    /// Finds [HeraTool] handlers on demand via reflection.
     /// No caching, no registration — every call scans live.
     /// </summary>
     public static class ToolDiscovery
@@ -26,7 +26,7 @@ namespace UnityCliConnector
                 foreach (var type in types)
                 {
                     if (type.IsClass == false) continue;
-                    var attr = type.GetCustomAttribute<UnityCliToolAttribute>();
+                    var attr = type.GetCustomAttribute<HeraToolAttribute>();
                     if (attr == null) continue;
 
                     var name = attr.Name ?? StringCaseUtility.ToSnakeCase(type.Name);
@@ -77,7 +77,7 @@ namespace UnityCliConnector
                 foreach (var type in types)
                 {
                     if (type.IsClass == false) continue;
-                    var attr = type.GetCustomAttribute<UnityCliToolAttribute>();
+                    var attr = type.GetCustomAttribute<HeraToolAttribute>();
                     if (attr == null) continue;
                     if (!attr.Enabled) continue; // Skip disabled tools
 
@@ -146,7 +146,7 @@ namespace UnityCliConnector
         {
             try
             {
-                var attr = toolType.GetCustomAttribute<UnityCliToolAttribute>();
+                var attr = toolType.GetCustomAttribute<HeraToolAttribute>();
                 var toolName = attr?.Name ?? StringCaseUtility.ToSnakeCase(toolType.Name);
                 ToolMetadataRegistry.Register(toolType);
                 return ToolMetadataRegistry.GetTool(toolName);

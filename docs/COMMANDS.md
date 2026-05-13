@@ -345,7 +345,7 @@ hera-agent asset-config <subcommand>
 
 ## Custom Tool Invocation
 
-Any `[UnityCliTool]` class can be called directly by its snake_case name:
+Any `[HeraTool]` class can be called directly by its snake_case name:
 
 ```bash
 # Call a custom tool directly

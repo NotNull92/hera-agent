@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-using UnityCliConnector;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
     /// Represents metadata for a tool parameter including schema information
@@ -140,8 +139,8 @@ namespace UnityCliConnector
         {
             IsBuiltIn = isBuiltIn;
             
-            var toolAttr = toolType.GetCustomAttributes(typeof(UnityCliToolAttribute), false)
-                .FirstOrDefault() as UnityCliToolAttribute;
+            var toolAttr = toolType.GetCustomAttributes(typeof(HeraToolAttribute), false)
+                .FirstOrDefault() as HeraToolAttribute;
             
             Name = toolAttr?.Name ?? GetSnakeCaseName(toolType.Name);
             Description = toolAttr?.Description ?? "";

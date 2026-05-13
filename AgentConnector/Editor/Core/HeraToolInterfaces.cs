@@ -1,12 +1,12 @@
 using System;
 using Newtonsoft.Json.Linq;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
     /// Base interface for class-based CLI tools that maintain state
     /// </summary>
-    public interface IUnityCliTool
+    public interface IHeraTool
     {
         /// <summary>
         /// Execute the tool command with parameters
@@ -17,23 +17,23 @@ namespace UnityCliConnector
     /// <summary>
     /// Generic interface for class-based CLI tools that can work with specific parameter types
     /// </summary>
-    public interface IUnityCliTool<T> where T : class, new()
+    public interface IHeraTool<T> where T : class, new()
     {
         /// <summary>
         /// Execute the tool command with typed parameters
         /// </summary>
         object HandleCommand(T parameters);
-        
+
         /// <summary>
         /// Optional: Validate parameters before execution
         /// </summary>
         bool Validate(T parameters);
-        
+
         /// <summary>
         /// Optional: Pre-process parameters
         /// </summary>
         T PreProcess(JObject rawParameters);
-        
+
         /// <summary>
         /// Optional: Post-process results
         /// </summary>
@@ -43,7 +43,7 @@ namespace UnityCliConnector
     /// <summary>
     /// Base abstract class for class-based CLI tools
     /// </summary>
-    public abstract class BaseUnityCliTool : IUnityCliTool
+    public abstract class BaseHeraTool : IHeraTool
     {
         public virtual object HandleCommand(JObject parameters)
         {
@@ -61,7 +61,7 @@ namespace UnityCliConnector
     /// <summary>
     /// Base abstract class for typed CLI tools
     /// </summary>
-    public abstract class BaseUnityCliTool<T> : BaseUnityCliTool, IUnityCliTool<T> where T : class, new()
+    public abstract class BaseHeraTool<T> : BaseHeraTool, IHeraTool<T> where T : class, new()
     {
         public virtual bool Validate(T parameters)
         {

@@ -3,9 +3,9 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.Compilation;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Description = "Refresh Unity assets and optionally request script compilation.")]
+    [HeraTool(Description = "Refresh Unity assets and optionally request script compilation.")]
     public static class RefreshUnity
     {
         public class Parameters

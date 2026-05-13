@@ -1,4 +1,4 @@
-namespace UnityCliConnector
+namespace HeraAgent
 {
     public class SuccessResponse
     {

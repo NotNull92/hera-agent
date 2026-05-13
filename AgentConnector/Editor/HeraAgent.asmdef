@@ -1,6 +1,6 @@
 {
-  "name": "UnityCliConnector.Editor",
-  "rootNamespace": "UnityCliConnector",
+  "name": "HeraAgent.Editor",
+  "rootNamespace": "HeraAgent",
   "references": [],
   "includePlatforms": ["Editor"],
   "excludePlatforms": [],

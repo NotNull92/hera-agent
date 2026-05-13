@@ -10,9 +10,9 @@ Create a C# class in `AgentConnector/Editor/Tools/` (or anywhere in an Editor as
 
 ```csharp
 using Newtonsoft.Json.Linq;
-using UnityCliConnector;
+using HeraAgent;
 
-[UnityCliTool(Name = "spawn_cube", Description = "Spawns a cube at the specified position")]
+[HeraTool(Name = "spawn_cube", Description = "Spawns a cube at the specified position")]
 public static class SpawnCubeTool
 {
     public class Parameters
@@ -61,7 +61,7 @@ hera-agent spawn_cube --params '{"x":0,"y":1,"z":0,"name":"MyCube"}'
 ### Pattern 1: Static Class (Recommended for stateless tools)
 
 ```csharp
-[UnityCliTool(Name = "my_tool")]
+[HeraTool(Name = "my_tool")]
 public static class MyTool
 {
     public static object HandleCommand(JObject @params) { ... }
@@ -71,8 +71,8 @@ public static class MyTool
 ### Pattern 2: Instance Class (For stateful tools)
 
 ```csharp
-[UnityCliTool(Name = "stateful_tool")]
-public class StatefulTool : IUnityCliTool
+[HeraTool(Name = "stateful_tool")]
+public class StatefulTool : IHeraTool
 {
     private int _counter;
 
@@ -89,7 +89,7 @@ The `CommandRouter` creates an instance via `Activator.CreateInstance()` for eac
 ### Pattern 3: Async Tool
 
 ```csharp
-[UnityCliTool(Name = "async_tool")]
+[HeraTool(Name = "async_tool")]
 public static class AsyncTool
 {
     public static async Task<object> HandleCommand(JObject @params)
@@ -106,10 +106,10 @@ public static class AsyncTool
 
 ## Attributes
 
-### UnityCliToolAttribute
+### HeraToolAttribute (`[HeraTool]`)
 
 ```csharp
-[UnityCliTool(
+[HeraTool(
     Name = "tool_name",           // Command name (snake_case recommended)
     Description = "What it does",  // Shown in list output
     Group = "Editor",              // Optional grouping
@@ -196,9 +196,9 @@ return new { success = true, value = 42 };
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
-using UnityCliConnector;
+using HeraAgent;
 
-[UnityCliTool(
+[HeraTool(
     Name = "find_by_tag",
     Description = "Finds all GameObjects with the specified tag"
 )]
@@ -249,7 +249,7 @@ hera-agent find_by_tag --params '{"tag":"Enemy"}'
 
 ## Tool Discovery Rules
 
-1. Class must have `[UnityCliTool]` attribute
+1. Class must have `[HeraTool]` attribute
 2. Must have a `HandleCommand` method with signature:
    - `static object HandleCommand(JObject params)` (static)
    - `object HandleCommand(JObject params)` (instance)

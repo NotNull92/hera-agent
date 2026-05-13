@@ -6,9 +6,9 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Name = "console", Description = "Read or clear Unity console logs.")]
+    [HeraTool(Name = "console", Description = "Read or clear Unity console logs.")]
     public static class ReadConsole
     {
         private static MethodInfo _startGettingEntriesMethod, _endGettingEntriesMethod, _clearMethod, _getCountMethod, _getEntryMethod;

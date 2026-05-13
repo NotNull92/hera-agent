@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     /// <summary>
     /// Debug logging configuration and utilities

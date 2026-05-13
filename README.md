@@ -165,10 +165,10 @@ Because it compiles and runs real C#, you can call **any** Unity API, inspect EC
 Drop a C# class anywhere in your Editor assembly. It is discovered automatically.
 
 ```csharp
-using UnityCliConnector;
+using HeraAgent;
 using Newtonsoft.Json.Linq;
 
-[UnityCliTool(Name = "spawn", Group = "gameplay")]
+[HeraTool(Name = "spawn", Group = "gameplay")]
 public static class SpawnEnemy
 {
     public class Parameters
@@ -209,7 +209,7 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 │ • sends cmd │         │  └──────────┬──────────┘    │
 │ • prints    │         │             │ reflection     │
 │   response  │         │  ┌──────────▼──────────┐    │
-└─────────────┘         │  │   [UnityCliTool]    │    │
+└─────────────┘         │  │   [HeraTool]        │    │
                         │  │   classes           │    │
                         │  └─────────────────────┘    │
                         └─────────────────────────────┘

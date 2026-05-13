@@ -5,13 +5,13 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
     /// <summary>
     /// Detects installed third-party asset plugins in the Unity project.
     /// Updates asset-config.json with installed status.
     /// </summary>
-    [UnityCliTool(Description = "Detect installed third-party asset plugins and update asset config", Group = "config")]
+    [HeraTool(Description = "Detect installed third-party asset plugins and update asset config", Group = "config")]
     public static class DetectAssets
     {
         public class Parameters

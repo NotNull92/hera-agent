@@ -19,9 +19,9 @@ AgentConnector/
     │   ├── ToolParams.cs                # typed parameter access helpers
     │   ├── StringCaseUtility.cs          # PascalCase ↔ snake_case
     │   ├── ToolMetadata.cs              # schema metadata registry
-    │   └── UnityCliToolInterfaces.cs    # IUnityCliTool, BaseUnityCliTool
+    │   └── HeraToolInterfaces.cs        # IHeraTool, BaseHeraTool
     ├── Attributes/
-    │   └── UnityCliToolAttribute.cs     # [UnityCliTool], [ToolParameter]
+    │   └── HeraToolAttribute.cs          # [HeraTool], [ToolParameter]
     ├── Tools/
     │   ├── ManageEditor.cs              # play, stop, pause, tags, layers
     │   ├── ExecuteCsharp.cs             # C# code execution
@@ -144,7 +144,7 @@ catch (Exception ex)
 ## ToolDiscovery.cs
 
 ### Role
-Finds `[UnityCliTool]` handlers on demand via reflection. No caching, no registration — every call scans live.
+Finds `[HeraTool]` handlers on demand via reflection. No caching, no registration — every call scans live.
 
 ### Finding a Handler
 
@@ -155,7 +155,7 @@ public static MethodInfo FindHandler(string command)
     {
         foreach (var type in assembly.GetTypes())
         {
-            var attr = type.GetCustomAttribute<UnityCliToolAttribute>();
+            var attr = type.GetCustomAttribute<HeraToolAttribute>();
             if (attr == null) continue;
 
             var name = attr.Name ?? StringCaseUtility.ToSnakeCase(type.Name);
@@ -177,7 +177,7 @@ public static MethodInfo FindHandler(string command)
 | `ManageEditor` | `manage_editor` |
 | `ExecuteCsharp` | `execute_csharp` |
 | `EditorScreenshot` | `editor_screenshot` |
-| Custom: `[UnityCliTool(Name = "my_tool")]` | `my_tool` (explicit) |
+| Custom: `[HeraTool(Name = "my_tool")]` | `my_tool` (explicit) |
 
 ### Schema Generation
 

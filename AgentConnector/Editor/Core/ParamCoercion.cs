@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     public static class ParamCoercion
     {

@@ -1,8 +1,8 @@
 {
-  "name": "UnityCliConnector.TestRunner",
-  "rootNamespace": "UnityCliConnector.TestRunner",
+  "name": "HeraAgent.TestRunner",
+  "rootNamespace": "HeraAgent.TestRunner",
   "references": [
-    "UnityCliConnector.Editor",
+    "HeraAgent.Editor",
     "UnityEditor.TestRunner"
   ],
   "includePlatforms": ["Editor"],

@@ -4,9 +4,9 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Name = "screenshot", Description = "Capture a screenshot of the Unity editor. Views: scene, game.")]
+    [HeraTool(Name = "screenshot", Description = "Capture a screenshot of the Unity editor. Views: scene, game.")]
     public static class EditorScreenshot
     {
         private const int DefaultWidth = 1920;

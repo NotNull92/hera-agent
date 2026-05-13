@@ -73,7 +73,7 @@ hera-agent/
 │       ├── CommandRouter.cs      # command dispatch + locking
 │       ├── ToolDiscovery.cs      # reflection-based tool scanning
 │       ├── Heartbeat.cs          # instance state file writer
-│       ├── Attributes/           # [UnityCliTool], [ToolParameter]
+│       ├── Attributes/           # [HeraTool], [ToolParameter]
 │       ├── Core/                 # Response types, param coercion
 │       ├── Tools/                # Built-in tool implementations
 │       └── TestRunner/           # Unity Test Framework integration
@@ -92,7 +92,7 @@ hera-agent/
 |:---|:---|
 | **HTTP, not WebSocket** | Simpler. No connection state to manage. CLI is stateless. |
 | **Instance files, not process scanning** | Unity PID detection is OS-specific and fragile. JSON files are reliable. |
-| **Reflection-based tool discovery** | No registration boilerplate. Drop a C# class with `[UnityCliTool]` — it works. |
+| **Reflection-based tool discovery** | No registration boilerplate. Drop a C# class with `[HeraTool]` — it works. |
 | **SemaphoreSlim serialization** | Prevents race conditions when multiple CLI agents access same Unity. |
 | **Domain-reload survival** | `[InitializeOnLoad]` + `AssemblyReloadEvents` ensures HTTP server restarts after script compilation. |
 | **Go-side passthrough default** | Most commands need no Go code. CLI sends params to Unity, prints response. Only polling commands (editor, test) need Go logic. |
@@ -102,7 +102,7 @@ hera-agent/
 ## Entry Points for Common Tasks
 
 ### Add a new CLI command
-1. Create C# tool in `AgentConnector/Editor/Tools/` with `[UnityCliTool(Name = "command_name")]`
+1. Create C# tool in `AgentConnector/Editor/Tools/` with `[HeraTool(Name = "command_name")]`
 2. That's it. Default passthrough in `cmd/root.go` handles dispatch automatically.
 3. If you need polling/waiting logic (like `editor play --wait`), add Go code in `cmd/<command>.go`.
 

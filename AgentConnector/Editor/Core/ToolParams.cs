@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json.Linq;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     public class ToolParams
     {

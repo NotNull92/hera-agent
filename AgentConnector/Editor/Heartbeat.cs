@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector
+namespace HeraAgent
 {
     [InitializeOnLoad]
     public static class Heartbeat

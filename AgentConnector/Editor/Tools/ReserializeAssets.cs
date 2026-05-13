@@ -2,9 +2,9 @@ using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityCliConnector.Tools
+namespace HeraAgent.Tools
 {
-    [UnityCliTool(Name = "reserialize", Description = "Force reserialize Unity assets. No params = entire project.")]
+    [HeraTool(Name = "reserialize", Description = "Force reserialize Unity assets. No params = entire project.")]
     public static class ReserializeAssets
     {
         public class Parameters
