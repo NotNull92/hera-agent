@@ -63,6 +63,10 @@ func Execute() error {
 		return nil
 	case "update":
 		return updateCmd(subArgs)
+	case "install":
+		return installCmd()
+	case "uninstall":
+		return uninstallCmd()
 	case "status":
 		inst, err := discoverStatusInstance(flagProject, flagPort)
 		if err != nil {

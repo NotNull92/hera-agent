@@ -1,0 +1,126 @@
+package cmd
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+func uninstallCmd() error {
+	printUninstallHeader()
+
+	// Step 1: Confirm
+	confirmed, err := promptConfirm("  This will permanently remove hera-agent and its config. Continue? (y/N): ")
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		fmt.Println("  Uninstall cancelled.")
+		return nil
+	}
+	fmt.Println()
+
+	// Step 2: Detect current binary / install dir
+	exe, err := os.Executable()
+	if err != nil {
+		exe = ""
+	} else {
+		exe, _ = filepath.EvalSymlinks(exe)
+	}
+	installDir, _ := getInstallPaths()
+
+	// Step 3: Remove config directory
+	if cfgErr := removeConfigDir(); cfgErr != nil {
+		printUninstallWarn("Config directory", cfgErr)
+	} else {
+		printUninstallDone("Removed config directory")
+	}
+
+	// Step 4: Remove from PATH
+	if pathErr := removeFromPATH(installDir); pathErr != nil {
+		printUninstallWarn("PATH cleanup", pathErr)
+	} else {
+		printUninstallDone("Removed from PATH")
+	}
+
+	// Step 5: Remove binary and install directory (OS-specific)
+	if delErr := removeBinaryAndDir(exe, installDir); delErr != nil {
+		printUninstallWarn("Binary removal", delErr)
+	} else {
+		printUninstallDone("Removed binary and install directory")
+	}
+
+	// Step 6: Success
+	printUninstallSuccess()
+	return nil
+}
+
+func removeConfigDir() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	var cfgDir string
+	if runtime.GOOS == "windows" {
+		cfgDir = filepath.Join(home, "AppData", "Roaming", "hera-agent")
+	} else {
+		cfgDir = filepath.Join(home, ".config", "hera-agent")
+	}
+	if _, err := os.Stat(cfgDir); os.IsNotExist(err) {
+		return nil
+	}
+	return os.RemoveAll(cfgDir)
+}
+
+func removePathEntry(pathList, entry string) string {
+	parts := strings.Split(pathList, string(os.PathListSeparator))
+	var out []string
+	for _, p := range parts {
+		if strings.TrimSpace(p) == entry {
+			continue
+		}
+		out = append(out, p)
+	}
+	return strings.Join(out, string(os.PathListSeparator))
+}
+
+func promptConfirm(msg string) (bool, error) {
+	fmt.Print(msg)
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+	input = strings.TrimSpace(strings.ToLower(input))
+	return input == "y" || input == "yes", nil
+}
+
+func printUninstallHeader() {
+	fmt.Println()
+	fmt.Println("  hera-agent uninstall")
+	fmt.Println("  Removing hera-agent from your system...")
+	fmt.Println()
+}
+
+func printUninstallWarn(context string, err error) {
+	fmt.Printf("  ! %s: %v\n", context, err)
+}
+
+func printUninstallDone(msg string) {
+	fmt.Printf("  ✓ %s\n", msg)
+}
+
+func printUninstallSuccess() {
+	fmt.Println()
+	msg := "hera-agent has been completely removed.\n\nNo trace remains."
+	if runtime.GOOS == "windows" {
+		msg += "\n\nRestart PowerShell for PATH changes to take full effect."
+	} else {
+		msg += "\n\nRestart your terminal or run 'source ~/.bashrc' (or ~/.zshrc)."
+	}
+	fmt.Println(msg)
+	fmt.Println()
+}
