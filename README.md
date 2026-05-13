@@ -9,7 +9,7 @@
 [![Go Version](https://img.shields.io/badge/go-%5E1.22-00ADD8?style=flat-square&logo=go)](https://go.dev)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-ff69b4?style=flat-square)]()
 
-**One binary. Zero dependencies. Direct HTTP. No ceremony.**
+**Measurement, not guessing — give AI hands on the live Editor.**
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Commands](#commands) · [Custom Tools](#custom-tools) · [Architecture](#architecture)
 
@@ -17,13 +17,19 @@
 
 ---
 
-## Why
+## Hera
 
-Every other Unity integration asks you to install Python, run a WebSocket relay, write JSON-RPC configs, register tools, and manage a persistent server process.
+LLMs don't know your project. They remember last year's Unity API and generalized patterns. You pay that gap every week — in tokens and in time.
 
-This tool asks for **none of that**.
+Hera stands between them.
 
-It is a single Go binary that talks to Unity over HTTP. The Unity-side connector starts automatically. You type a command. It runs. That is the entire mental model.
+Before AI guesses your code, Hera runs it in the Editor and returns the result. Before AI assumes a console error, Hera fetches the actual log filtered by type. Before AI hypothesizes a Play Mode outcome, Hera enters it and waits until it finishes.
+
+No middleware. No Python, no WebSocket, no JSON-RPC. One Go binary, localhost HTTP, one C# UPM package. When Unity Editor opens, Hera is already there.
+
+Hera responds to commands — never inferring, never assuming. It returns what your Unity is, right now, exactly as it is.
+
+Guessing is expensive. Measurement is the command.
 
 ```
 ┌─────────────┐      HTTP      ┌─────────────────┐

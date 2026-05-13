@@ -9,26 +9,32 @@
 [![Go Version](https://img.shields.io/badge/go-%5E1.22-00ADD8?style=flat-square&logo=go)](https://go.dev)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-ff69b4?style=flat-square)]()
 
-**하나의 바이너리. 의존성 제로. 직접 HTTP. 아무 추가 없이.**
+**추측 대신 실측 — AI에게 살아 있는 Unity를 만지게 합니다.**
 
-[Installation](#설치) · [Quick Start](#퀸-스타트) · [Commands](#명령어) · [Custom Tools](#커스텀-툴) · [Architecture](#구조)
+[Installation](#설치) · [Quick Start](#퀵-스타트) · [Commands](#명령어) · [Custom Tools](#커스텀-툴) · [Architecture](#구조)
 
 </div>
 
 ---
 
-## 왜 만들었는가
+## Hera
 
-다른 Unity 통합 도구들은 Python, WebSocket 릴레이, JSON-RPC 설정, 툴 등록, 영구 서버 프로세스 관리를 요구합니다.
+LLM은 당신의 Unity를 모릅니다. 작년에 학습한 API와 일반화된 패턴을 기억할 뿐입니다. 당신은 매주 그 격차를 토큰과 시간으로 갚고 있습니다.
 
-이 도구는 그 어떤 것도 요구하지 않습니다.
+Hera는 그 사이에 섭니다.
 
-단일 Go 바이너리가 HTTP로 Unity와 직접 통신합니다. Unity 커넥터는 자동으로 시작됩니다. 명령어를 입력하면 실행됩니다. 그게 전부입니다.
+AI가 코드를 추측하기 전에, Hera가 Editor에서 직접 실행하고 결과를 회수합니다. AI가 콘솔 에러를 가정하기 전에, Hera가 실제 로그를 type별로 가져옵니다. AI가 Play Mode 결과를 짐작하기 전에, Hera가 직접 돌리고 끝날 때까지 기다립니다.
+
+중간 서버는 없습니다. Python도, WebSocket도, JSON-RPC도 없습니다. 하나의 Go 바이너리, localhost HTTP, C# UPM 패키지 하나. Unity Editor가 열리면 Hera는 이미 거기 있습니다.
+
+Hera는 명령에 응답합니다 — 추론하지 않고, 가정하지 않고. 당신의 Unity가 지금 이 순간 무엇인지를 있는 그대로 가져옵니다.
+
+추측은 비쌉니다. 실측은 명령입니다.
 
 ```
 ┌─────────────┐      HTTP      ┌─────────────────┐
-│   터미널   │ ◄────────────► │   Unity Editor  │
-│  (1바이너리) │   port 8090    │ (자동 시작)   │
+│   터미널    │ ◄────────────► │   Unity Editor  │
+│  (1바이너리) │   port 8090    │   (자동 시작)   │
 └─────────────┘                └─────────────────┘
 ```
 
@@ -57,7 +63,7 @@ go install github.com/NotNull92/hera-agent@latest
 
 ---
 
-## 퀸 스타트
+## 퀵 스타트
 
 ### 1. Unity Connector 설치
 
@@ -101,7 +107,7 @@ hera-agent console --type error
 | `test` | EditMode / PlayMode 테스트 실행 |
 | `menu` | 메뉴 항목 경로로 실행 |
 | `screenshot` | Scene 또는 Game 뷰 캡처 |
-| `profiler` | 프로파일러 계층 읽기, 록화 제어 |
+| `profiler` | 프로파일러 계층 읽기, 녹화 제어 |
 | `reserialize` | 텍스트 편집 후 YAML 정제 |
 | `list` | 사용 가능한 모든 툴 및 스키마 출력 |
 | `status` | 연결 상태 및 프로젝트 정보 |
@@ -111,7 +117,7 @@ hera-agent console --type error
 
 ## `exec` 명령어
 
-가장 강력한 기능입니다. 벏금 없이 전체 런타임에 접근할 수 있습니다.
+가장 강력한 기능입니다. 보일러플레이트 없이 전체 런타임에 접근할 수 있습니다.
 
 ```bash
 # 모든 것을 검사
@@ -127,13 +133,13 @@ return scene.GetRootGameObjects().Length;
 ' | hera-agent exec
 ```
 
-실제 C#을 컴파일하고 실행하므로 **Unity의 모든 API를 호출할 수 있습니다.** ECS World 검색, 에셋 수정, 에디터 내부 API 호출도 모두 가능합니다. 별도의 커스힀 툴 작성이 필요 없습니다.
+실제 C#을 컴파일하고 실행하므로 **Unity의 모든 API를 호출할 수 있습니다.** ECS World 검색, 에셋 수정, 에디터 내부 API 호출도 모두 가능합니다. 별도의 커스텀 툴 작성이 필요 없습니다.
 
 ---
 
 ## 커스텀 툴
 
-C# 클래스를 Editor 어셈블리에 방치하면 자동으로 발견됩니다.
+C# 클래스를 Editor 어셈블리에 두면 자동으로 발견됩니다.
 
 ```csharp
 using UnityCliConnector;
@@ -200,10 +206,10 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 | **설치** | Python + uv + FastMCP + 설정 파일 | 단일 바이너리 |
 | **런타임 의존성** | WebSocket 릴레이, 영구 프로세스 | 없음 |
 | **프로토콜** | JSON-RPC 2.0 over stdio | 직접 HTTP POST |
-| **설정** | MCP 설정 생성, AI 클라이언트 재시작 | 패키지 추가로 종료 |
+| **설정** | MCP 설정 생성, AI 클라이언트 재시작 | 패키지 추가하면 끝 |
 | **도메인 리로드** | 복잡한 재연결 로직 | 스테이트리스 |
-| **커스힄 툴** | `[Attribute]` 패턴 | 동일한 `[Attribute]` 패턴 |
-| **호환성** | MCP 클라이언트 전용 | 쓰는 터미널, 어떤 에이전트나 |
+| **커스텀 툴** | `[Attribute]` 패턴 | 동일한 `[Attribute]` 패턴 |
+| **호환성** | MCP 클라이언트 전용 | 어떤 셸에서든, 어떤 에이전트와도 |
 
 ---
 
