@@ -22,7 +22,7 @@
         "docs/issues/path-stale-env-block.md 문서화"
       ],
       "rationale": "이전엔 install 후 IDE/Unity가 옛 env block을 가진 채로 살아 있으면 PATH 인식 실패. 'Unity Hub → Unity → Rider → 터미널' 체인 구조상 사용자가 모든 부모 프로세스를 종료해야 했음. WindowsApps는 OS가 자동 PATH 포함시키므로 PATH 등록 자체가 불필요해짐.",
-      "commits": []
+      "commits": ["afeb8d2"]
     },
     {
       "date": "2026-05-13",
