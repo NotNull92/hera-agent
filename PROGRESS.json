@@ -10,6 +10,20 @@
   "milestones": [
     {
       "date": "2026-05-14",
+      "type": "refactor",
+      "summary": "install/uninstall 헤더를 'HERA AGENT LITE' ASCII 워드마크로 교체",
+      "details": [
+        "internal/tui/style.go: BrandBanner() 추가 — 3줄 box-drawing 워드마크, TitleStyle(Antique Gold)로 렌더",
+        "hera-agent-pro의 BrandBanner 패턴을 동일 적용 — PRO 세 글자만 LITE 네 글자로 교체, HERA AGENT 부분은 그대로",
+        "cmd/install.go printInstallHeader: 텍스트 두 줄(TitleStyle 'Hera Agent — Commissioning' + InfoStyle 'Establishing your estate...') → tui.BrandBanner() 한 호출로 교체",
+        "cmd/uninstall.go printUninstallHeader: 동일 패턴 교체 ('Hera Agent — Decommissioning' + 'Releasing your estate...' → BrandBanner)",
+        "성공/실패 메시지·확인 프롬프트·스타일 상수 등 다른 카피는 변경 없음"
+      ],
+      "rationale": "Lite/Pro 시각 정체성 통일. Pro가 이미 ASCII 워드마크를 install/uninstall 헤더로 쓰고 있어 Lite도 동일 패턴 채택. 텍스트 부제 제거로 시각 임팩트 강화.",
+      "commits": ["755201c"]
+    },
+    {
+      "date": "2026-05-14",
       "type": "feat",
       "summary": "status / asset-config 출력에 TTY 가드 + Old Money 스타일 확장",
       "details": [
