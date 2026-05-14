@@ -2,14 +2,24 @@ $ErrorActionPreference = "Stop"
 
 $repo = "NotNull92/hera-agent"
 
-# Old Money ANSI color palette
-$Gold = "`e[38;2;201;162;39m"
-$Burgundy = "`e[38;2;114;47;55m"
-$Sage = "`e[38;2;85;107;47m"
-$Cream = "`e[38;2;245;241;232m"
-$WarmGray = "`e[38;2;139;129;120m"
-$Reset = "`e[0m"
-$Bold = "`e[1m"
+# Old Money ANSI color palette.
+# Use [char]27 instead of `e so this parses on Windows PowerShell 5.1
+# (where the `e escape does not exist and would be emitted literally).
+$ESC = [char]27
+$ansiOk = (-not $env:NO_COLOR) -and `
+          ($PSVersionTable.PSVersion.Major -ge 7 -or $Host.UI.SupportsVirtualTerminal)
+
+if ($ansiOk) {
+    $Gold     = "$ESC[38;2;201;162;39m"
+    $Burgundy = "$ESC[38;2;114;47;55m"
+    $Sage     = "$ESC[38;2;85;107;47m"
+    $Cream    = "$ESC[38;2;245;241;232m"
+    $WarmGray = "$ESC[38;2;139;129;120m"
+    $Reset    = "$ESC[0m"
+    $Bold     = "$ESC[1m"
+} else {
+    $Gold = ""; $Burgundy = ""; $Sage = ""; $Cream = ""; $WarmGray = ""; $Reset = ""; $Bold = ""
+}
 
 function Write-Step($label, $value) {
     Write-Host "  $($Bold)$($Cream)$($label):$($Reset) $($Gold)$value$($Reset)"
@@ -19,7 +29,8 @@ function Write-Done($msg) {
     Write-Host "  $($Sage)✓$($Reset) $($Cream)$msg$($Reset)"
 }
 
-function Write-Error($msg) {
+# Named Write-Fail to avoid shadowing the built-in Write-Error cmdlet.
+function Write-Fail($msg) {
     Write-Host "  $($Burgundy)✗$($Reset) $($Cream)$msg$($Reset)"
 }
 
@@ -80,7 +91,7 @@ Write-Host "  $($Cream)Any NEW terminal or IDE will recognize 'hera-agent' immed
 Write-Host "  $($WarmGray)(WindowsApps resides on the default user PATH).$($Reset)"
 Write-Host ""
 Write-Host "  $($Cream)Should an open terminal not yet recognize it, refresh with:$($Reset)"
-Write-Host "$($Gold)    \$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')$($Reset)"
+Write-Host "$($Gold)    `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')$($Reset)"
 Write-Host ""
 Write-Host "$($Bold)$($Cream)  Next, instruct your agent to employ it:$($Reset)"
 Write-Host "    $($Cream)- Discover: inquire of Claude Code CLI or Codex in any terminal:$($Reset)"
