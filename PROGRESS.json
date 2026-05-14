@@ -3,11 +3,26 @@
   "description": "CLI tool to control Unity Editor from the command line.",
   "lastUpdated": "2026-05-14",
   "current": {
-    "cli": "v0.0.7",
+    "cli": "v0.0.8",
     "connector": "0.0.2",
     "branch": "main"
   },
   "milestones": [
+    {
+      "date": "2026-05-14",
+      "type": "release",
+      "release": { "cli": "v0.0.8" },
+      "summary": "v0.0.8 릴리즈 — Old Money TUI 완성 + install 서브커맨드 제거",
+      "details": [
+        "tag v0.0.8 푸시 → Release 워크플로우(25850166130) cross-compile + GitHub Release 성공",
+        "go clean -cache -testcache 후 hera-agent update로 v0.0.7 → v0.0.8 검증",
+        "echo n | hera-agent uninstall로 BrandBanner 노출 + Decommissioning cancelled 정상 동작 확인",
+        "묶음 변경 (v0.0.7 ~ v0.0.8 사이 15 커밋): BrandBanner ASCII 워드마크 (Go + install.ps1 + install.sh), hera-agent install 서브커맨드 제거, asset-config TUI Old Money 팔레트 통일, uninstall flow Old Money 톤, status/asset-config TTY 가드, install.ps1 PS 5.1 호환 + Write-Error shadowing + $env:Path escape fix"
+      ],
+      "breaking": true,
+      "migration": "hera-agent install 서브커맨드 호출하던 스크립트는 README의 irm | iex (Windows) 또는 curl | sh (Unix) bootstrap 경로로 이전 필요. 일반 사용자 영향 없음.",
+      "commits": ["v0.0.8 tag"]
+    },
     {
       "date": "2026-05-14",
       "type": "feat",
