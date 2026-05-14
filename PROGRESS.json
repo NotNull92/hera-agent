@@ -9,6 +9,65 @@
   },
   "milestones": [
     {
+      "date": "2026-05-14",
+      "type": "feat",
+      "summary": "status / asset-config 출력에 TTY 가드 + Old Money 스타일 확장",
+      "details": [
+        "internal/tui/detect.go 신설 — ColorEnabled() 헬퍼 (isatty + NO_COLOR + HERA_PLAIN 3중 가드)",
+        "go-isatty를 indirect → direct dependency로 승격",
+        "cmd/status.go: TTY일 때 tui.StatusPanel + DotStatus + PathStyle 적용. 파이프/redirect일 때 기존 plain 포맷 유지",
+        "cmd/asset_config.go list: TitleStyle/HelpSectionStyle/StatusBadge/CheckStyle 적용 (TTY 분기)",
+        "cmd/asset_config.go enable/disable/toggle: printToggleResult 헬퍼로 컬러 분기",
+        "cmd/asset_config.go detect: InfoStyle/LabelStyle/PathStyle 적용 (TTY 분기)",
+        "cmd/asset_config.go get: 'id: true' 머신 파싱용 출력이므로 plain 유지"
+      ],
+      "rationale": "status·asset-config 출력은 AI 에이전트·스크립트가 stdout 파싱할 가능성이 높음. 컬러 항상 적용 시 ANSI escape가 로그/파이프로 흘러가 깨짐. TTY 감지로 인터랙티브 환경에만 격상하고 plain 호환성은 유지.",
+      "commits": ["6c62909"]
+    },
+    {
+      "date": "2026-05-14",
+      "type": "refactor",
+      "summary": "uninstall flow Old Money 톤·tui 적용 (install과 패럴렐)",
+      "details": [
+        "헤더: 'hera-agent uninstall / Removing hera-agent...' → 'Hera Agent — Decommissioning / Releasing your estate...'",
+        "확인 프롬프트: 'permanently remove ... Continue?' → 'dissolve hera-agent and all its records. Proceed?'",
+        "성공 메시지: 'completely removed / No trace remains' → 'Your instrument has been released / No trace remains upon the estate' + BoxAccent 박스로 감싸 install 성공 박스와 시각 일관",
+        "printUninstallHeader/Warn/Done/Success가 tui 패키지 스타일 사용 (TitleStyle, InfoStyle, LabelStyle, WarningStyle, CheckStyle, SuccessStyle, BoxAccent)"
+      ],
+      "rationale": "install이 Commissioning으로 격상됐는데 uninstall은 plain text로 남아 톤이 갈렸음. 동일 어휘 체계로 정렬.",
+      "commits": ["6576232"]
+    },
+    {
+      "date": "2026-05-14",
+      "type": "refactor",
+      "summary": "asset-config TUI 컬러를 Old Money 팔레트로 통일",
+      "details": [
+        "internal/tui/assetconfig.go의 9개 스타일을 style.go의 Old Money 상수로 교체",
+        "titleStyle: #7C3AED → ColorPrimary (Antique Gold)",
+        "categoryStyle: #6B7280 → ColorSecondary (Burgundy)",
+        "checkedStyle: #10B981 → ColorSuccess (Dark Olive Green)",
+        "installedStyle/cursorStyle/boxStyle border: → ColorPrimary (Antique Gold)",
+        "helpStyle: #9CA3AF → ColorInfo (Warm Gray)",
+        "quitStyle: #EF4444 → ColorError (Deep Burgundy)",
+        "uncheckedStyle/notInstalledStyle: 회색 계열 → ColorMuted (Charcoal)"
+      ],
+      "rationale": "install flow Old Money 리브랜딩(2bbbc41)에서 누락된 TUI 부분 마무리.",
+      "commits": ["58c9a3a"]
+    },
+    {
+      "date": "2026-05-14",
+      "type": "fix",
+      "summary": "install.ps1: PS 5.1 호환 + Write-Error shadowing + $env:Path escape",
+      "details": [
+        "ANSI escape `e → [char]27로 교체 (Windows PowerShell 5.1에서 `e가 리터럴 'e'로 출력되던 문제)",
+        "$ansiOk 가드 추가 ($env:NO_COLOR 또는 VT 미지원 환경에서 컬러 escape 비활성화)",
+        "Write-Error → Write-Fail 리네임 (PowerShell 빌트인 cmdlet shadowing 회피)",
+        "\\$env:Path → `$env:Path: 더블쿼트 안에서 백슬래시는 이스케이프가 아니므로 리터럴 \\$이 출력되던 버그 수정"
+      ],
+      "rationale": "2bbbc41 Old Money 브랜딩에서 도입한 install.ps1 ANSI 컬러가 PS 5.1 + legacy conhost + NO_COLOR 환경에서 깨지던 잠재 이슈 정리. Write-Error shadowing은 미사용이라 즉시 문제 없었지만 빌트인 cmdlet 충돌 회피.",
+      "commits": ["9fc893b"]
+    },
+    {
       "date": "2026-05-13",
       "type": "refactor",
       "summary": "install flow Old Money 브랜딩 + tui 스타일 모듈 신설",
