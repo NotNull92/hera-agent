@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NotNull92/hera-agent/internal/client"
+	"github.com/NotNull92/hera-agent/internal/tui"
 )
 
 type instanceResolver func() (*client.Instance, error)
@@ -24,6 +25,20 @@ func statusCmd(inst *client.Instance) error {
 		return nil
 	}
 
+	if tui.ColorEnabled() {
+		fmt.Println(tui.StatusPanel(
+			fmt.Sprintf("Unity Editor — port %d", status.Port),
+			[][2]string{
+				{"State", tui.DotStatus(status.State)},
+				{"Project", tui.PathStyle.Render(status.ProjectPath)},
+				{"Version", status.UnityVersion},
+				{"PID", fmt.Sprintf("%d", status.PID)},
+			},
+		))
+		return nil
+	}
+
+	// Plain output — kept stable for script/AI parsing.
 	fmt.Printf("Unity (port %d): %s\n", status.Port, status.State)
 	fmt.Printf("  Project: %s\n", status.ProjectPath)
 	fmt.Printf("  Version: %s\n", status.UnityVersion)

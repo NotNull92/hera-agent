@@ -83,9 +83,6 @@ func assetConfigList() error {
 		return err
 	}
 
-	fmt.Printf("Asset Config v%s — %s\n\n", cfg.Version, assetconfig.ConfigFilePath())
-
-	// Group by category
 	categoryNames := map[string]string{
 		"inspector":     "인스펙터",
 		"validation":    "검증",
@@ -95,11 +92,42 @@ func assetConfigList() error {
 
 	categorized := make(map[string][]assetconfig.AssetEntry)
 	for _, a := range cfg.Assets {
-		cat := a.Category
-		categorized[cat] = append(categorized[cat], a)
+		categorized[a.Category] = append(categorized[a.Category], a)
+	}
+	catOrder := []string{"inspector", "validation", "serialization", "animation"}
+
+	if tui.ColorEnabled() {
+		fmt.Println(tui.TitleStyle.Render(fmt.Sprintf("Asset Config v%s", cfg.Version)))
+		fmt.Println(tui.PathStyle.Render(assetconfig.ConfigFilePath()))
+		fmt.Println()
+		for _, cat := range catOrder {
+			items, ok := categorized[cat]
+			if !ok {
+				continue
+			}
+			fmt.Println("  " + tui.HelpSectionStyle.Render(categoryNames[cat]))
+			for _, a := range items {
+				badge := tui.StatusBadge("disabled")
+				if a.Enabled {
+					badge = tui.StatusBadge("enabled")
+				}
+				installed := tui.MutedStyle.Render("·")
+				if a.Installed {
+					installed = tui.CheckStyle.Render("✓")
+				}
+				fmt.Printf("    %s %s  %s %s\n",
+					badge,
+					tui.PathStyle.Render(a.ID),
+					installed,
+					a.Name)
+			}
+			fmt.Println()
+		}
+		return nil
 	}
 
-	catOrder := []string{"inspector", "validation", "serialization", "animation"}
+	// Plain output — kept stable for script/AI parsing.
+	fmt.Printf("Asset Config v%s — %s\n\n", cfg.Version, assetconfig.ConfigFilePath())
 	for _, cat := range catOrder {
 		items, ok := categorized[cat]
 		if !ok {
@@ -136,7 +164,7 @@ func assetConfigToggle(id string, enabled bool) error {
 	if enabled {
 		state = "enabled"
 	}
-	fmt.Printf("✓ %s %s\n", id, state)
+	printToggleResult(id, state)
 	return nil
 }
 
@@ -155,16 +183,38 @@ func assetConfigToggleAction(id string) error {
 			if a.Enabled {
 				state = "enabled"
 			}
-			fmt.Printf("✓ %s %s\n", id, state)
+			printToggleResult(id, state)
 			return nil
 		}
 	}
 	return nil
 }
 
+func printToggleResult(id, state string) {
+	if tui.ColorEnabled() {
+		fmt.Printf("%s %s %s\n",
+			tui.CheckStyle.Render("✓"),
+			tui.PathStyle.Render(id),
+			tui.StatusBadge(state))
+		return
+	}
+	fmt.Printf("✓ %s %s\n", id, state)
+}
+
 func assetConfigDetect() error {
 	// This command shows instructions for asset detection.
 	// The actual detection requires Unity running with the Connector package.
+	if tui.ColorEnabled() {
+		fmt.Println(tui.InfoStyle.Render("에셋 감지를 실행하려면 Unity가 실행 중이어야 합니다."))
+		fmt.Println(tui.InfoStyle.Render("Unity 실행 후 아래 명령으로 감지:"))
+		fmt.Println("  " + tui.PathStyle.Render("hera-agent asset-config detect"))
+		fmt.Println()
+		fmt.Printf("%s %s\n",
+			tui.LabelStyle.Render("Config path:"),
+			tui.PathStyle.Render(assetconfig.ConfigFilePath()))
+		return nil
+	}
+
 	fmt.Println("에셋 감지를 실행하려면 Unity가 실행 중이어야 합니다.")
 	fmt.Println("Unity 실행 후 아래 명령으로 감지:")
 	fmt.Println("  hera-agent asset-config detect")
