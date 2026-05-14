@@ -11,45 +11,46 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Asset Config TUI styling — aligned with the Old Money palette in style.go.
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#7C3AED")).
+			Foreground(lipgloss.Color(ColorPrimary)). // Antique Gold
 			MarginBottom(1)
 
 	categoryStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#6B7280")).
+			Foreground(lipgloss.Color(ColorSecondary)). // Burgundy
 			MarginTop(1)
 
 	checkedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#10B981"))
+			Foreground(lipgloss.Color(ColorSuccess)) // Dark Olive Green
 
 	uncheckedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#6B7280"))
+			Foreground(lipgloss.Color(ColorMuted)) // Charcoal
 
 	installedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#3B82F6")).
+			Foreground(lipgloss.Color(ColorPrimary)). // Antique Gold
 			Bold(true)
 
 	notInstalledStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#4B5563"))
+				Foreground(lipgloss.Color(ColorMuted)) // Charcoal
 
 	cursorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#F59E0B")).
+			Foreground(lipgloss.Color(ColorPrimary)). // Antique Gold
 			Bold(true)
 
 	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#9CA3AF")).
+			Foreground(lipgloss.Color(ColorInfo)). // Warm Gray
 			MarginTop(1)
 
 	quitStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#EF4444")).
+			Foreground(lipgloss.Color(ColorError)). // Deep Burgundy
 			Bold(true)
 
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#7C3AED")).
+			BorderForeground(lipgloss.Color(ColorPrimary)). // Antique Gold accent
 			Padding(1, 2)
 )
 
