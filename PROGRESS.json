@@ -10,6 +10,17 @@
   "milestones": [
     {
       "date": "2026-05-14",
+      "type": "feat",
+      "summary": "install.ps1 / install.sh 헤더를 'HERA AGENT LITE' ASCII 워드마크로 교체",
+      "details": [
+        "install.ps1: 'Hera Agent — Commissioning' + 'Establishing your estate...' 두 줄 → 3줄 box-drawing 워드마크 (Antique Gold Bold). 기존 $ansiOk 가드가 NO_COLOR / VT 미지원 환경에서 자동 plain fallback",
+        "install.sh: 기존엔 헤더 없이 'Downloading...'으로 바로 시작. 동일 3줄 배너 추가. printf '\\033[1;38;2;201;162;39m'로 24-bit ANSI Gold + [ -t 1 ] / NO_COLOR 가드로 파이프·CI plain fallback"
+      ],
+      "rationale": "hera-agent install 서브커맨드 제거(9c53889) 후 사용자가 보는 install 출력은 100% install.ps1 (irm | iex) / install.sh (curl | sh) bootstrap에서 나옴. Go 측 BrandBanner()와 톤을 맞춰야 irm 사용자도 워드마크를 볼 수 있음. 실제 사용자 보고: 'Hera Agent — Commissioning만 나오고 ASCII Art 안 나옴'.",
+      "commits": ["ae271b7"]
+    },
+    {
+      "date": "2026-05-14",
       "type": "refactor",
       "summary": "hera-agent install 서브커맨드 제거 (Lite는 install.ps1 / install.sh 부트스트랩만 사용)",
       "details": [
