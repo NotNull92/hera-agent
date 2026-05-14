@@ -1,13 +1,38 @@
 {
   "project": "hera-agent",
   "description": "CLI tool to control Unity Editor from the command line.",
-  "lastUpdated": "2026-05-13",
+  "lastUpdated": "2026-05-14",
   "current": {
     "cli": "v0.0.7",
     "connector": "0.0.2",
     "branch": "main"
   },
   "milestones": [
+    {
+      "date": "2026-05-13",
+      "type": "refactor",
+      "summary": "install flow Old Money 브랜딩 + tui 스타일 모듈 신설",
+      "details": [
+        "internal/tui/style.go 신설 — lipgloss 기반 공통 스타일 모듈 (컬러 상수 10개, 스타일 16개, 빌더 함수 11개: StatusPanel/ErrorPanel/SuccessPanel/InfoPanel/KV/KVPath/SectionHeader/Table/Progress/StatusBadge/DotStatus)",
+        "컬러 팔레트 전환: neon → Old Money (Antique Gold #C9A227, Burgundy #722F37, Sage #4A6741, Cream #F5F1E8, Warm Gray #8B8178)",
+        "카피 톤 전환: Installation → Commissioning, installed successfully → Your instrument has been commissioned, Lock in → Commission, Downloading → Acquiring",
+        "install.ps1: 24-bit ANSI escape (`e[38;2;R;G;Bm) 직접 박음 + Write-Step/Write-Done/Write-Error 헬퍼 추가",
+        "cmd/install.go: tui 패키지 사용으로 전환 (TitleStyle, InfoStyle, LabelStyle, PathStyle, CheckStyle, ErrorStyle, BoxAccent, SuccessStyle)"
+      ],
+      "rationale": "Lite/Pro 브랜드 보이스를 랜딩 페이지 Old Money 컨셉과 정렬. 향후 다른 CLI 출력(status, list 등)에서도 tui 패키지 재사용 가능.",
+      "commits": ["2bbbc41"]
+    },
+    {
+      "date": "2026-05-13",
+      "type": "refactor",
+      "summary": "Debug.Log prefix [UnityCliConnector] → [Hera] 통일",
+      "details": [
+        "7개 C# 파일 Debug.Log* 일괄 갱신: Heartbeat.cs, HttpServer.cs, ToolDiscovery.cs, RunTests.cs, ReserializeAssets.cs, DetectAssets.cs, ReadConsole.cs",
+        "v0.0.3 milestone의 '의도적으로 보존' 항목 정정"
+      ],
+      "rationale": "rebrand 일관성 마무리 — 코드 상수까지 Hera로 통일.",
+      "commits": ["409f403"]
+    },
     {
       "date": "2026-05-13",
       "type": "feat",
@@ -108,7 +133,7 @@
         "README/docs/cmd help/CLAUDE.md 예제 코드 갱신",
         ".gitignore: unity-cli → hera-agent (실 빌드 산출물 반영)",
         "docs/DEVELOPMENT.md의 미사용 UNITY_AGENT_CLI_PORT 블록 제거",
-        "Debug.Log 낸부 [UnityCliConnector] 프리픽스 → [Hera]로 통일 완료"
+        "Debug.Log 내부 [UnityCliConnector] 프리픽스 → [Hera]로 통일 완료"
       ],
       "breaking": true,
       "migration": "외부 커스텀 도구는 'using HeraAgent;' + [HeraTool]로 변경 필요",
