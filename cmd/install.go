@@ -212,8 +212,7 @@ func runPowerShellWithArgs(script string, args ...string) error {
 
 func printInstallHeader() {
 	fmt.Println()
-	fmt.Println(tui.TitleStyle.Render("  Hera Agent — Commissioning"))
-	fmt.Println(tui.InfoStyle.Render("  Establishing your estate..."))
+	fmt.Println(tui.BrandBanner())
 	fmt.Println()
 }
 

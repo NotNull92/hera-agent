@@ -104,8 +104,7 @@ func promptConfirm(msg string) (bool, error) {
 
 func printUninstallHeader() {
 	fmt.Println()
-	fmt.Println(tui.TitleStyle.Render("  Hera Agent — Decommissioning"))
-	fmt.Println(tui.InfoStyle.Render("  Releasing your estate..."))
+	fmt.Println(tui.BrandBanner())
 	fmt.Println()
 }
 
