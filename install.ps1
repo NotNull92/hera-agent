@@ -41,8 +41,9 @@ $installDir = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
 $exe = "$installDir\hera-agent.exe"
 
 Write-Host ""
-Write-Host "$($Bold)$($Gold)  Hera Agent — Commissioning$($Reset)"
-Write-Host "  $($WarmGray)Establishing your estate...$($Reset)"
+Write-Host "$($Bold)$($Gold)  ╦ ╦ ╔═╗ ╔═╗ ╔═╗   ╔═╗ ╔═╗ ╔═╗ ╔╗╔ ╔╦╗   ╦   ╔╦╗ ╔╦╗ ╔═╗$($Reset)"
+Write-Host "$($Bold)$($Gold)  ╠═╣ ║╣  ╠╦╝ ╠═╣   ╠═╣ ║ ╦ ║╣  ║║║  ║    ║    ║   ║  ║╣ $($Reset)"
+Write-Host "$($Bold)$($Gold)  ╩ ╩ ╚═╝ ╩╚═ ╩ ╩   ╩ ╩ ╚═╝ ╚═╝ ╝╚╝  ╩    ╚══ ╚╩╝  ╩  ╚═╝$($Reset)"
 Write-Host ""
 
 # Migrate from legacy install location ($LOCALAPPDATA\hera-agent) if present.

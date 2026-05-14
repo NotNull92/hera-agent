@@ -20,6 +20,22 @@ esac
 INSTALL_DIR="$HOME/.local/bin"
 mkdir -p "$INSTALL_DIR"
 
+# Old Money banner (Antique Gold). Hidden when stdout isn't a TTY
+# or when NO_COLOR is set, so log captures and CI runs stay clean.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  GOLD=$(printf '\033[1;38;2;201;162;39m')
+  RESET=$(printf '\033[0m')
+else
+  GOLD=""
+  RESET=""
+fi
+
+echo ""
+printf '%s\n' "${GOLD}  ╦ ╦ ╔═╗ ╔═╗ ╔═╗   ╔═╗ ╔═╗ ╔═╗ ╔╗╔ ╔╦╗   ╦   ╔╦╗ ╔╦╗ ╔═╗${RESET}"
+printf '%s\n' "${GOLD}  ╠═╣ ║╣  ╠╦╝ ╠═╣   ╠═╣ ║ ╦ ║╣  ║║║  ║    ║    ║   ║  ║╣ ${RESET}"
+printf '%s\n' "${GOLD}  ╩ ╩ ╚═╝ ╩╚═ ╩ ╩   ╩ ╩ ╚═╝ ╚═╝ ╝╚╝  ╩    ╚══ ╚╩╝  ╩  ╚═╝${RESET}"
+echo ""
+
 URL="https://github.com/${REPO}/releases/latest/download/hera-agent-${OS}-${ARCH}"
 
 echo "Downloading hera-agent for ${OS}/${ARCH}..."
