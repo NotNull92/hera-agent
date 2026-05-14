@@ -7,18 +7,22 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/NotNull92/hera-agent/internal/tui"
 )
 
 func uninstallCmd() error {
 	printUninstallHeader()
 
 	// Step 1: Confirm
-	confirmed, err := promptConfirm("  This will permanently remove hera-agent and its config. Continue? (y/N): ")
+	prompt := fmt.Sprintf("  %s ",
+		tui.LabelStyle.Render("This will dissolve hera-agent and all its records. Proceed? (y/N):"))
+	confirmed, err := promptConfirm(prompt)
 	if err != nil {
 		return err
 	}
 	if !confirmed {
-		fmt.Println("  Uninstall cancelled.")
+		fmt.Println("  " + tui.InfoStyle.Render("Decommissioning cancelled."))
 		return nil
 	}
 	fmt.Println()
@@ -100,28 +104,31 @@ func promptConfirm(msg string) (bool, error) {
 
 func printUninstallHeader() {
 	fmt.Println()
-	fmt.Println("  hera-agent uninstall")
-	fmt.Println("  Removing hera-agent from your system...")
+	fmt.Println(tui.TitleStyle.Render("  Hera Agent — Decommissioning"))
+	fmt.Println(tui.InfoStyle.Render("  Releasing your estate..."))
 	fmt.Println()
 }
 
 func printUninstallWarn(context string, err error) {
-	fmt.Printf("  ! %s: %v\n", context, err)
+	fmt.Printf("  %s %s: %v\n",
+		tui.WarningStyle.Render("!"),
+		tui.LabelStyle.Render(context),
+		err)
 }
 
 func printUninstallDone(msg string) {
-	fmt.Printf("  ✓ %s\n", msg)
+	fmt.Printf("  %s %s\n", tui.CheckStyle.Render("✓"), msg)
 }
 
 func printUninstallSuccess() {
 	fmt.Println()
-	msg := "hera-agent has been completely removed.\n\nNo trace remains."
+	msg := "Your instrument has been released.\n\nNo trace remains upon the estate."
 	if runtime.GOOS == "windows" {
 		msg += "\n\nFully close and reopen your IDE or terminal application"
-		msg += "\n(not just the terminal tab) for PATH changes to take full effect."
+		msg += "\n(not merely the terminal tab) for PATH changes to take full effect."
 	} else {
-		msg += "\n\nRestart your terminal or run 'source ~/.bashrc' (or ~/.zshrc)."
+		msg += "\n\nRestart your terminal, or run 'source ~/.bashrc' (or ~/.zshrc)."
 	}
-	fmt.Println(msg)
+	fmt.Println(tui.BoxAccent.Render(tui.SuccessStyle.Render("✓ Decommissioned") + "\n\n" + msg))
 	fmt.Println()
 }
