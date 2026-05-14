@@ -11,6 +11,24 @@
     {
       "date": "2026-05-14",
       "type": "refactor",
+      "summary": "hera-agent install 서브커맨드 제거 (Lite는 install.ps1 / install.sh 부트스트랩만 사용)",
+      "details": [
+        "cmd/install.go 전체 삭제 (257줄): installCmd + printInstallHeader/Step/Error/Success + copyFile + addToPATH* + appendLineIfNotExists + cleanupLegacyInstall",
+        "cmd/paths.go 신설 (cross-platform): getInstallPaths만 — uninstall이 install 위치를 알기 위해 필요",
+        "cmd/paths_windows.go 신설 (//go:build windows): legacyInstallPaths + runPowerShellWithArgs — uninstall_windows.go에서만 호출",
+        "cmd/root.go switch에서 'install' 케이스 제거",
+        "docs/issues/path-stale-env-block.md: 'hera-agent install 성공 메시지' → 'install.ps1 성공 메시지'로 갱신",
+        "install.ps1 / install.sh / uninstall* / tui.BrandBanner 등 다른 경로는 변경 없음"
+      ],
+      "rationale": "Lite에서 install은 README의 irm | iex (install.ps1) 및 curl | sh (install.sh) bootstrap 경로만으로 충분. CLI 서브커맨드로 install을 다시 노출할 필요 없음. 또한 cmd/install.go의 addToPATHWindows가 PowerShell -Command + extra arg 패턴을 잘못 써서 v0.0.6 이후 Windows에서 PATH 단계가 exit 1로 실패하던 잠재 이슈도 함께 해소.",
+      "followups": [
+        "9c53889 → cmd/paths.go에 Windows 전용 함수가 같이 들어가 Linux/macOS 빌드에서 unused 린트 실패. 93f3d29에서 paths_windows.go로 분리해 GOOS=linux/darwin/windows 모두 통과"
+      ],
+      "commits": ["9c53889", "93f3d29"]
+    },
+    {
+      "date": "2026-05-14",
+      "type": "refactor",
       "summary": "install/uninstall 헤더를 'HERA AGENT LITE' ASCII 워드마크로 교체",
       "details": [
         "internal/tui/style.go: BrandBanner() 추가 — 3줄 box-drawing 워드마크, TitleStyle(Antique Gold)로 렌더",
