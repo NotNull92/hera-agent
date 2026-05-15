@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -18,19 +19,14 @@ func removeFromPATH(installDir string) error {
 	if legacyDir == "" {
 		return nil
 	}
-	script := `
-$legacy = $args[0]
-$norm = [System.IO.Path]::GetFullPath($legacy).TrimEnd('\')
-$p = [Environment]::GetEnvironmentVariable("Path", "User")
-$entries = if ($p) { $p -split ';' } else { @() }
-$filtered = $entries | Where-Object {
-    if (-not $_) { return $false }
-    try { return ([System.IO.Path]::GetFullPath($_).TrimEnd('\')) -ne $norm }
-    catch { return $true }
-}
-$new = $filtered -join ';'
-if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }
-`
+	// Verify the legacy directory actually exists before trying to clean PATH.
+	if _, err := os.Stat(legacyDir); os.IsNotExist(err) {
+		return nil
+	}
+	// Use a single-line script so -Command treats the entire expression as one
+	// statement. Multi-line strings cause PowerShell to parse subsequent lines as
+	// separate commands, producing "GetFullPath" and "CommandNotFound" errors.
+	script := `$legacy = $args[0]; if (-not $legacy) { exit 0 }; $norm = [System.IO.Path]::GetFullPath($legacy).TrimEnd('\'); $p = [Environment]::GetEnvironmentVariable("Path", "User"); $entries = if ($p) { $p -split ';' } else { @() }; $filtered = $entries | Where-Object { if (-not $_) { return $false }; try { return ([System.IO.Path]::GetFullPath($_).TrimEnd('\')) -ne $norm } catch { return $true } }; $new = $filtered -join ';'; if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }`
 	if err := runPowerShellWithArgs(script, legacyDir); err != nil {
 		return err
 	}
@@ -44,11 +40,20 @@ if ($new -ne $p) { [Environment]::SetEnvironmentVariable("Path", $new, "User") }
 
 func removeBinaryAndDir(exe, installDir string) error {
 	binPath := filepath.Join(installDir, "hera-agent.exe")
+
+	// Try to remove the binary in installDir (WindowsApps).
+	// If it's the currently running executable, Windows locks it.
+	// Use a deferred deletion via cmd.exe so the file disappears after we exit.
 	if _, err := os.Stat(binPath); err == nil {
 		if rmErr := os.Remove(binPath); rmErr != nil {
-			return rmErr
+			// Self-deletion on Windows fails with "Access is denied".
+			// Schedule a delayed delete that runs after this process terminates.
+			quoted := `"` + binPath + `"`
+			cmd := exec.Command("cmd", "/c", "timeout /t 1 >nul && del /f "+quoted)
+			_ = cmd.Start()
 		}
 	}
+
 	// installDir is WindowsApps (a shared OS directory) — never remove it.
 	// We only own the binary inside.
 
@@ -62,9 +67,14 @@ func removeBinaryAndDir(exe, installDir string) error {
 		_ = os.Remove(legacyDir)
 	}
 
-	// Also remove the running binary itself if it's outside installDir
+	// Also remove the running binary itself if it's outside installDir.
+	// Again, use deferred deletion if direct removal fails.
 	if exe != "" && exe != binPath {
-		_ = os.Remove(exe)
+		if rmErr := os.Remove(exe); rmErr != nil {
+			quoted := `"` + exe + `"`
+			cmd := exec.Command("cmd", "/c", "timeout /t 1 >nul && del /f "+quoted)
+			_ = cmd.Start()
+		}
 	}
 	return nil
 }

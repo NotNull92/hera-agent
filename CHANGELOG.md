@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9] - 2025-05-15
+
+### Fixed
+- Windows `uninstall` command PowerShell script parsing error
+  - Multi-line script caused `GetFullPath` exception and `CommandNotFoundException`
+  - Compressed to single-line expression for `-Command` compatibility
+- Windows `uninstall` self-deletion "Access is denied" error
+  - Uses deferred deletion (`cmd /c timeout && del`) when direct removal fails
+- Added `$legacy` empty-string guard and legacy directory existence check
+
+## [0.0.8] - 2025-05-15
+
 ### Changed
 - Author section enhanced with professional background and contact links
 - Issue templates added for bug reports, feature requests, and questions
