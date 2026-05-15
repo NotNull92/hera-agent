@@ -52,6 +52,30 @@ go test -tags integration ./...
 
 CI skips these since Unity is not available.
 
+### Why Additional Unit Tests Are Not Added
+
+**Go-side code is a thin passthrough layer.** All business logic lives in the C# Unity Editor connector. The Go CLI's job is limited to:
+- Parsing CLI arguments (`root.go`) — already covered by `root_test.go`
+- HTTP dispatch to localhost — mocking Unity's response format is meaningless; the real value is in how C# handles the request
+- File polling (`status.go`, `test.go`) — already covered by `status_test.go`
+- Version check caching (`version_check.go`) — already covered by `version_check_test.go`
+- Self-update (`update.go`) — `findAsset()` is covered; the actual download+replace logic requires a real GitHub Release, mocking provides no value
+
+**Unity Editor is required for all meaningful tests.** Commands like `editor play`, `exec`, `console`, `profiler`, `screenshot` only work when Unity is running. Without it, tests can only verify "we sent the right HTTP payload" — which tells us nothing about whether the command actually works.
+
+**Result:** No additional unit tests are pursued. Coverage of passthrough/parsing logic is sufficient. Real validation happens via manual integration testing with Unity Editor open.
+
+### Why "~800 lines of Go" Was Changed to "~800 lines of core Go"
+
+The original claim "~800 lines of Go" appeared in README.md, README.ko.md, docs/ARCHITECTURE.md, and docs/INDEX.md. While the **core engine that talks to Unity** is indeed ~800 lines, the total Go codebase is ~3,000 lines (including tests ~4,100 lines), and C# is ~3,300 lines.
+
+**Why the change:**
+- The ~800 figure was factually accurate for the **core HTTP client + passthrough logic** but misleading for the total codebase
+- External readers (e.g., GeekNews) would call it out as dishonest if they counted the actual files
+- The fix: "~800 lines of **core** Go" + a footnote: "Tests, TUI, and platform adapters add ~2,200 more lines — but the engine that talks to Unity stays lean"
+
+**Files updated:** README.md, README.ko.md, docs/ARCHITECTURE.md, docs/INDEX.md
+
 ## Checklist
 
 ### 변경 시

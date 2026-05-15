@@ -4,14 +4,16 @@
 
 ## What This Project Is
 
-`hera-agent` is a **single-binary CLI tool** (written in Go, ~800 LOC) that controls **Unity Editor** (via a C# connector, ~2300 LOC) over **plain HTTP** on localhost.
+`hera-agent` is a **single-binary CLI tool** (written in Go, ~800 LoC core logic) that controls **Unity Editor** (via a C# connector, ~2300 LOC) over **plain HTTP** on localhost.
+
+Tests, TUI, and platform adapters add ~2,200 more lines — but the engine that talks to Unity stays lean.
 
 **No WebSockets. No JSON-RPC. No Python. No persistent server process.**
 
 ```
 ┌─────────────────┐      HTTP POST      ┌─────────────────────┐
 │   Go Binary     │  ◄──────────────►   │   Unity Editor      │
-│   (~800 LoC)    │   localhost:8090    │   (auto-starts)     │
+│   (~800 LoC core) │   localhost:8090    │   (auto-starts)     │
 │                 │                     │   C# Connector      │
 └─────────────────┘                     └─────────────────────┘
 ```

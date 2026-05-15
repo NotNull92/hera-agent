@@ -56,7 +56,9 @@ Guessing is expensive. Measurement is the command.
 └─────────────┘                └─────────────────┘
 ```
 
-**~800 lines of Go. ~2,300 lines of C#. Nothing else.**
+**~800 lines of core Go. ~2,300 lines of C#. Nothing else.**
+
+> Tests, TUI, and platform adapters add ~2,200 more lines — but the engine that talks to Unity stays lean.
 
 ---
 
@@ -149,6 +151,8 @@ This keeps the agent grounded — instead of guessing Unity APIs from training d
 | `list` | Show all tools + schemas |
 | `status` | Connection & project info |
 | `update` | Self-update the binary |
+| `install` | Install the CLI to PATH |
+| `uninstall` | Remove the CLI from PATH |
 
 ---
 
@@ -217,7 +221,7 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 ┌─────────────┐         ┌─────────────────────────────┐
 │   CLI Go    │         │      Unity Editor           │
-│  (~800 LoC) │◄───────►│  ┌─────────────────────┐    │
+│  (~800 LoC core) │◄───────►│  ┌─────────────────────┐    │
 │             │  HTTP   │  │   HttpServer        │    │
 │ • discovers │  8090+  │  │   (localhost)       │    │
 │ • sends cmd │         │  └──────────┬──────────┘    │
@@ -262,9 +266,11 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 
 ## Author
 
-Built by **Victor** for **Hera AI Agent**.
+**Victor** — Unity/C# Developer, 6+ years live-service MMORPG production  
+Building [NoMoreRolls](https://github.com/NotNull92) solo with [hera-agent](https://github.com/NotNull92/hera-agent) · [IndieAlchemist](https://www.youtube.com/@IndieAlchemist) on YouTube
 
 [![GitHub](https://img.shields.io/badge/@NotNull92-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/NotNull92)
+[![Email](https://img.shields.io/badge/fatiger92@gmail.com-EA4335?logo=gmail&logoColor=white&style=flat-square)](mailto:fatiger92@gmail.com)
 
 ## License
 

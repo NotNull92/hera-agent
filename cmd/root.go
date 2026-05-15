@@ -636,10 +636,10 @@ Rules:
 
 CLI Installation:
   # Linux / macOS
-  curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/master/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.sh | sh
 
   # Windows (PowerShell)
-  irm https://raw.githubusercontent.com/NotNull92/hera-agent/master/install.ps1 | iex
+  irm https://raw.githubusercontent.com/NotNull92/hera-agent/main/install.ps1 | iex
 
   # Go install (any platform)
   go install github.com/NotNull92/hera-agent@latest

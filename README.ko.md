@@ -56,7 +56,9 @@ Hera는 명령에 응답합니다 — 추론하지 않고, 가정하지 않고. 
 └─────────────┘                └─────────────────┘
 ```
 
-**Go 약 800줄, C# 약 2,300줄. 더 이상 없습니다.**
+**Go 핵심 약 800줄, C# 약 2,300줄. 그 이상은 없습니다.**
+
+> 테스트, TUI, 플랫폼 어댑터 등 부가 코드가 약 2,200줄 더 있지만, Unity와 직접 통신하는 엔진은 여전히 가볍습니다.
 
 ---
 
@@ -149,6 +151,8 @@ hera-agent console --type error
 | `list` | 사용 가능한 모든 툴 및 스키마 출력 |
 | `status` | 연결 상태 및 프로젝트 정보 |
 | `update` | 바이너리 자동 업데이트 |
+| `install` | CLI를 PATH에 설치 |
+| `uninstall` | PATH에서 CLI 제거 |
 
 ---
 
@@ -262,9 +266,11 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 
 ## 제작자
 
-**Victor**가 **Hera AI Agent**를 위해 제작했습니다.
+**Victor** — Unity/C# 개발자, 라이브 서비스 MMORPG 6년+ 프로덕션 경험  
+[hera-agent](https://github.com/NotNull92/hera-agent)로 [NoMoreRolls](https://github.com/NotNull92)를 솔로 개발 중 · 유튜브 [IndieAlchemist](https://www.youtube.com/@IndieAlchemist)
 
 [![GitHub](https://img.shields.io/badge/@NotNull92-181717?logo=github&logoColor=white&style=flat-square)](https://github.com/NotNull92)
+[![Email](https://img.shields.io/badge/fatiger92@gmail.com-EA4335?logo=gmail&logoColor=white&style=flat-square)](mailto:fatiger92@gmail.com)
 
 ## 라이선스
 
