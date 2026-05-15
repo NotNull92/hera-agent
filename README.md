@@ -128,11 +128,13 @@ hera-agent console --type error
 
 The agent will discover hera-agent, list its commands, and start driving Unity for you.
 
-**Lock it in (recommended)** — add this line to your Unity project's `CLAUDE.md`, `AGENTS.md`, or whatever convention your AI agent reads:
+#### For Claude Code CLI Users
 
-> **"For any Unity work, always use hera-agent."**
+**Required** — add this line to your Unity project's `CLAUDE.md`, `AGENTS.md`, or whatever convention your AI agent reads:
 
-This keeps the agent grounded — instead of guessing Unity APIs from training data, it reaches for the live editor every time.
+> **"For any Unity work, always use hera-agent as the first choice."**
+
+This is not optional. Without this rule, the agent will guess Unity APIs from training data instead of reaching for the live editor. The result is outdated code, wrong assumptions, and wasted tokens. Lock it in once, save time every session.
 
 ---
 
