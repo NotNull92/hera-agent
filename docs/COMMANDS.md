@@ -12,7 +12,8 @@ These flags work with any command:
 |:---|:---|:---|:---|
 | `--port` | Select Unity instance by active heartbeat port | Auto-discover | `--port 8091` |
 | `--project` | Select Unity instance by project path | Auto-discover | `--project /path/to/project` |
-| `--timeout` | Request timeout in milliseconds | `120000` (2 min) | `--timeout 30000` |
+| `--timeout` | Request timeout in milliseconds | `60000` (1 min) | `--timeout 300000` |
+| `--verbose` | Print progress + per-phase timings to stderr | `false` | `--verbose` |
 
 ---
 
@@ -88,6 +89,7 @@ echo '<code>' | hera-agent exec [flags]
 | `--usings` | Add extra using directives (comma-separated) | `""` |
 | `--csc` | Path to csc compiler | Auto-detected |
 | `--dotnet` | Path to dotnet runtime | Auto-detected |
+| `--no-cache` | Skip compile/assembly cache (debug only) | `false` |
 
 ```bash
 # Basic execution
@@ -106,6 +108,8 @@ hera-agent exec "return World.All.Count;" --usings Unity.Entities
 **Default usings**: `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Reflection`, `System.Threading.Tasks`, `UnityEngine`, `UnityEngine.SceneManagement`, `UnityEditor`, `UnityEditor.SceneManagement`, `UnityEditorInternal`
 
 **Note**: Use `return` for output. Use `return null;` for void operations.
+
+**Caching**: Compiled assemblies are cached in `Library/HeraAgentCache/` and held in memory keyed by source hash. The first call per Unity session is the cold path (csc invocation); identical follow-up calls skip both compile and load. Cache invalidates automatically on assembly reload. Use `--no-cache` to bypass.
 
 ---
 
@@ -130,6 +134,48 @@ hera-agent console --lines 20 --type error
 hera-agent console --stacktrace full
 hera-agent console --clear
 ```
+
+---
+
+## scene
+
+Inspect and manage Unity scenes.
+
+```bash
+hera-agent scene <action> [target] [flags]
+```
+
+### Actions
+
+| Action | Description |
+|:---|:---|
+| `info` | Active scene + every loaded scene (name, path, dirty, root count). |
+| `load <path\|name>` | Open a scene by asset path or bare filename. |
+| `save [<path\|name>]` | Save the active scene, or a named loaded scene if specified. |
+| `list` | List scenes registered in Build Settings. |
+| `close <path\|name>` | Unload a loaded scene. Cannot close the only loaded scene. |
+
+### Flags
+
+| Flag | Description | Default | Applies to |
+|:---|:---|:---|:---|
+| `--mode` | `single`, `additive`, or `additive_without_loading` | `single` | `load` |
+
+### Examples
+
+```bash
+hera-agent scene info
+hera-agent scene load Assets/Scenes/Main.unity
+hera-agent scene load Main --mode additive
+hera-agent scene save
+hera-agent scene close Lobby
+hera-agent scene list
+```
+
+**Notes**:
+- `load --mode single` refuses to run if the active scene is dirty — save it first or load additively.
+- `close` refuses if the target scene is dirty.
+- Name resolution uses `AssetDatabase.FindAssets` with an exact filename match (case-insensitive).
 
 ---
 

@@ -15,6 +15,8 @@ namespace HeraAgent.Tools
     [HeraTool(Name = "exec", Description = "Execute arbitrary C# code at runtime. Full access to Unity and all loaded assemblies.")]
     public static class ExecuteCsharp
     {
+        private const string LangVersion = "latest";
+
         private static readonly string[] DefaultUsings =
         {
             "System",
@@ -43,6 +45,9 @@ namespace HeraAgent.Tools
 
             [ToolParameter("Path to dotnet runtime. Auto-detected if omitted.")]
             public string Dotnet { get; set; }
+
+            [ToolParameter("Skip compile/assembly cache. Forces a fresh csc invocation.")]
+            public bool NoCache { get; set; }
         }
 
         public static object HandleCommand(JObject parameters)
@@ -63,9 +68,11 @@ namespace HeraAgent.Tools
                     extraUsings.AddRange(usingsToken.ToString().Split(','));
             }
 
-            var cscPath = p.Get("csc");
-            var dotnetPath = p.Get("dotnet");
-            return CompileAndExecute(BuildSource(code, extraUsings), cscPath, dotnetPath);
+            var cscOverride = p.Get("csc");
+            var dotnetOverride = p.Get("dotnet");
+            var noCache = p.GetBool("no_cache") || p.GetBool("nocache") || p.GetBool("no-cache");
+
+            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache);
         }
 
         private static string BuildSource(string code, List<string> extraUsings)
@@ -85,7 +92,109 @@ namespace HeraAgent.Tools
             return sb.ToString();
         }
 
-        private static object CompileAndExecute(string source, string cscOverride = null, string dotnetOverride = null)
+        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache)
+        {
+            var timings = new Dictionary<string, long>();
+            string cacheKey;
+            try
+            {
+                cacheKey = ExecCompileCache.ComputeKey(source, LangVersion);
+            }
+            catch (Exception ex)
+            {
+                return new ErrorResponse($"Internal error preparing exec cache: {ex.Message}");
+            }
+
+            Assembly compiled = null;
+            object transientAlc = null; // ALC owned by this call when --no-cache; unloaded after Invoke
+
+            if (!noCache && ExecCompileCache.TryGetAssembly(cacheKey, out compiled))
+            {
+                timings["compile_ms"] = 0;
+                timings["load_ms"] = 0;
+            }
+
+            var dllPath = Path.Combine(ExecCompileCache.BinCacheDir, cacheKey + ".dll");
+            if (compiled == null && !noCache && File.Exists(dllPath))
+            {
+                var loadSw = Stopwatch.StartNew();
+                try
+                {
+                    var loaded = LoadAssembly(File.ReadAllBytes(dllPath), cacheKey);
+                    compiled = loaded.Assembly;
+                    ExecCompileCache.StoreAssembly(cacheKey, compiled, loaded.LoadContext);
+                    timings["compile_ms"] = 0;
+                    timings["load_ms"] = loadSw.ElapsedMilliseconds;
+                }
+                catch
+                {
+                    compiled = null;
+                }
+                loadSw.Stop();
+            }
+
+            if (compiled == null)
+            {
+                var compileSw = Stopwatch.StartNew();
+                var compileResult = CompileToBytes(source, cscOverride, dotnetOverride);
+                compileSw.Stop();
+                timings["compile_ms"] = compileSw.ElapsedMilliseconds;
+                if (compileResult.Error != null)
+                {
+                    ResponseTimings.Merge(compileResult.Error, timings);
+                    return compileResult.Error;
+                }
+
+                try
+                {
+                    Directory.CreateDirectory(ExecCompileCache.BinCacheDir);
+                    File.WriteAllBytes(dllPath, compileResult.Bytes);
+                }
+                catch { }
+
+                var loadSw = Stopwatch.StartNew();
+                LoadedAssembly loaded;
+                try
+                {
+                    loaded = LoadAssembly(compileResult.Bytes, cacheKey);
+                }
+                catch (Exception ex)
+                {
+                    loadSw.Stop();
+                    timings["load_ms"] = loadSw.ElapsedMilliseconds;
+                    var err = new ErrorResponse($"Failed to load compiled assembly: {ex.Message}");
+                    ResponseTimings.Merge(err, timings);
+                    return err;
+                }
+                loadSw.Stop();
+                timings["load_ms"] = loadSw.ElapsedMilliseconds;
+
+                compiled = loaded.Assembly;
+                if (!noCache)
+                    ExecCompileCache.StoreAssembly(cacheKey, compiled, loaded.LoadContext);
+                else
+                    transientAlc = loaded.LoadContext;
+            }
+
+            var result = Invoke(compiled, timings);
+            ResponseTimings.Merge(result, timings);
+
+            // For --no-cache we own the ALC and must unload it. Serialize already
+            // copied the result into primitive containers, so the response holds
+            // no live references into the compiled assembly's type graph.
+            if (transientAlc != null)
+                ExecCompileCache.TryUnload(transientAlc);
+
+            return result;
+        }
+
+        private struct CompileResult
+        {
+            public byte[] Bytes;
+            public ErrorResponse Error;
+        }
+
+        private static CompileResult CompileToBytes(string source, string cscOverride, string dotnetOverride)
         {
             var utf8 = new UTF8Encoding(false);
             var tmpDir = Path.Combine(Path.GetTempPath(), "hera-agent-exec");
@@ -100,54 +209,44 @@ namespace HeraAgent.Tools
             {
                 File.WriteAllText(srcFile, source, utf8);
 
+                var refsRsp = ExecCompileCache.GetRefRspPath();
+
                 var rsp = new StringBuilder();
                 rsp.AppendLine("-target:library");
                 rsp.AppendLine($"-out:\"{outFile}\"");
                 rsp.AppendLine("-nologo");
                 rsp.AppendLine("-nowarn:0105,1701,1702");
-                rsp.AppendLine("-langversion:latest");
+                rsp.AppendLine($"-langversion:{LangVersion}");
+                rsp.AppendLine($"@\"{refsRsp}\"");
                 rsp.AppendLine($"\"{srcFile}\"");
-
-                var added = new HashSet<string>();
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    try
-                    {
-                        if (asm.IsDynamic || string.IsNullOrEmpty(asm.Location)) continue;
-                        if (!added.Add(asm.GetName().Name)) continue;
-                        rsp.AppendLine($"-r:\"{asm.Location}\"");
-                    }
-                    catch { }
-                }
-
                 File.WriteAllText(rspFile, rsp.ToString(), utf8);
 
                 var rspArg = $"@\"{rspFile}\"";
-                var csc = FindCsc(cscOverride);
+                var csc = ExecCompileCache.ResolveCsc(cscOverride);
                 string exe, args;
 
                 if (csc != null && csc.EndsWith(".dll"))
                 {
-                    var dotnet = FindDotnet(dotnetOverride);
+                    var dotnet = ExecCompileCache.ResolveDotnet(dotnetOverride);
                     if (dotnet == null)
-                        return new ErrorResponse(
+                        return new CompileResult { Error = new ErrorResponse(
                             "Cannot find dotnet runtime under: " +
                             EditorApplication.applicationContentsPath +
-                            "\nSpecify the path manually with --dotnet <path>");
+                            "\nSpecify the path manually with --dotnet <path>") };
                     exe = dotnet;
-                    args = $"exec \"{csc}\" {rspArg}";
+                    args = $"exec \"{csc}\" {rspArg} /shared";
                 }
                 else if (csc != null)
                 {
                     exe = csc;
-                    args = rspArg;
+                    args = $"{rspArg} /shared";
                 }
                 else
                 {
-                    return new ErrorResponse(
+                    return new CompileResult { Error = new ErrorResponse(
                         "Cannot find csc compiler under: " +
                         EditorApplication.applicationContentsPath +
-                        "\nSpecify the path manually with --csc <path-to-csc.dll-or-csc.exe>");
+                        "\nSpecify the path manually with --csc <path-to-csc.dll-or-csc.exe>") };
                 }
 
                 var psi = new ProcessStartInfo
@@ -169,66 +268,17 @@ namespace HeraAgent.Tools
                     if (!proc.WaitForExit(30000))
                     {
                         try { proc.Kill(); } catch { }
-                        return new ErrorResponse("Compilation timed out (30s). The compiler process was killed.");
+                        return new CompileResult { Error = new ErrorResponse("Compilation timed out (30s). The compiler process was killed.") };
                     }
 
                     if (proc.ExitCode != 0)
                     {
                         var output = string.IsNullOrEmpty(stderr) ? stdout : stderr;
-                        return new ErrorResponse($"Compile error:\n{FormatErrors(output)}");
+                        return new CompileResult { Error = new ErrorResponse($"Compile error:\n{FormatErrors(output)}") };
                     }
                 }
 
-                var bytes = File.ReadAllBytes(outFile);
-
-                // Try to load via collectible AssemblyLoadContext to avoid leaking
-                // assemblies on each exec call. Falls back to Assembly.Load on runtimes
-                // that do not support collectible ALC (e.g. older Mono).
-                System.Reflection.Assembly compiled;
-                try
-                {
-                    var alcType = Type.GetType("System.Runtime.Loader.AssemblyLoadContext, System.Runtime.Loader");
-                    if (alcType != null)
-                    {
-                        var ctor = alcType.GetConstructor(new[] { typeof(string), typeof(bool) });
-                        var alc = ctor?.Invoke(new object[] { "hera-agent-exec-" + id, true });
-                        var loadMethod = alcType.GetMethod("LoadFromStream", new[] { typeof(System.IO.Stream) });
-                        if (alc != null && loadMethod != null)
-                        {
-                            using (var ms = new System.IO.MemoryStream(bytes))
-                            {
-                                compiled = (System.Reflection.Assembly)loadMethod.Invoke(alc, new object[] { ms });
-                            }
-                        }
-                        else
-                        {
-                            compiled = Assembly.Load(bytes);
-                        }
-                    }
-                    else
-                    {
-                        compiled = Assembly.Load(bytes);
-                    }
-                }
-                catch
-                {
-                    compiled = Assembly.Load(bytes);
-                }
-                var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
-                if (method == null)
-                    return new ErrorResponse("Internal error: compiled type or method not found.");
-
-                object result;
-                try
-                {
-                    result = method.Invoke(null, null);
-                }
-                catch (TargetInvocationException tie)
-                {
-                    var inner = tie.InnerException ?? tie;
-                    return new ErrorResponse($"Runtime error: {inner.GetType().Name}: {inner.Message}");
-                }
-                return new SuccessResponse("OK", Serialize(result, 0));
+                return new CompileResult { Bytes = File.ReadAllBytes(outFile) };
             }
             finally
             {
@@ -238,59 +288,63 @@ namespace HeraAgent.Tools
             }
         }
 
-        private static string FindCsc(string cscOverride = null)
+        private struct LoadedAssembly
         {
-            if (!string.IsNullOrEmpty(cscOverride))
-                return cscOverride;
-
-            var content = EditorApplication.applicationContentsPath;
-            var cscDll = SearchFile(content, "csc.dll");
-            if (cscDll != null) return cscDll;
-
-            if (Application.platform == RuntimePlatform.WindowsEditor)
-            {
-                var cscExe = SearchFile(content, "csc.exe");
-                if (cscExe != null) return cscExe;
-            }
-
-            return null;
+            public Assembly Assembly;
+            public object LoadContext; // collectible ALC; null when fallback to Assembly.Load
         }
 
-        private static string SearchFile(string dir, string name)
+        private static LoadedAssembly LoadAssembly(byte[] bytes, string id)
         {
             try
             {
-                var files = Directory.GetFiles(dir, name, SearchOption.AllDirectories);
-                foreach (var f in files)
-                    if (Path.GetFileName(f) == name)
-                        return f;
+                var alcType = Type.GetType("System.Runtime.Loader.AssemblyLoadContext, System.Runtime.Loader");
+                if (alcType != null)
+                {
+                    var ctor = alcType.GetConstructor(new[] { typeof(string), typeof(bool) });
+                    var alc = ctor?.Invoke(new object[] { "hera-agent-exec-" + id, true });
+                    var loadMethod = alcType.GetMethod("LoadFromStream", new[] { typeof(Stream) });
+                    if (alc != null && loadMethod != null)
+                    {
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            var asm = (Assembly)loadMethod.Invoke(alc, new object[] { ms });
+                            return new LoadedAssembly { Assembly = asm, LoadContext = alc };
+                        }
+                    }
+                }
             }
             catch { }
-            return null;
+            return new LoadedAssembly { Assembly = Assembly.Load(bytes), LoadContext = null };
         }
 
-        private static string FindDotnet(string dotnetOverride = null)
+        private static object Invoke(Assembly compiled, Dictionary<string, long> timings)
         {
-            if (!string.IsNullOrEmpty(dotnetOverride))
-                return dotnetOverride;
+            var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
+            if (method == null)
+                return new ErrorResponse("Internal error: compiled type or method not found.");
 
-            var name = "dotnet" + (Application.platform == RuntimePlatform.WindowsEditor ? ".exe" : "");
-            var found = SearchFile(EditorApplication.applicationContentsPath, name);
-            if (found != null) return found;
-
-            if (Application.platform != RuntimePlatform.WindowsEditor)
+            var execSw = Stopwatch.StartNew();
+            object result;
+            try
             {
-                var macPaths = new[]
-                {
-                    "/usr/local/share/dotnet/dotnet",
-                    "/opt/homebrew/bin/dotnet",
-                    "/usr/local/bin/dotnet",
-                };
-                foreach (var p in macPaths)
-                    if (File.Exists(p)) return p;
+                result = method.Invoke(null, null);
             }
+            catch (TargetInvocationException tie)
+            {
+                execSw.Stop();
+                timings["execute_ms"] = execSw.ElapsedMilliseconds;
+                var inner = tie.InnerException ?? tie;
+                return new ErrorResponse($"Runtime error: {inner.GetType().Name}: {inner.Message}");
+            }
+            execSw.Stop();
+            timings["execute_ms"] = execSw.ElapsedMilliseconds;
 
-            return name;
+            var serSw = Stopwatch.StartNew();
+            var serialized = Serialize(result, 0);
+            serSw.Stop();
+            timings["serialize_ms"] = serSw.ElapsedMilliseconds;
+            return new SuccessResponse("OK", serialized);
         }
 
         private static string FormatErrors(string raw)

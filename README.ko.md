@@ -142,6 +142,7 @@ hera-agent console --type error
 |---------|-------------|
 | `editor` | Play, stop, pause, refresh |
 | `exec` | Unity 내부에서 C# 코드 실행 |
+| `scene` | 씬 조회/로드/저장/목록/언로드 |
 | `console` | 로그 읽기, 필터링, 삭제 |
 | `test` | EditMode / PlayMode 테스트 실행 |
 | `menu` | 메뉴 항목 경로로 실행 |

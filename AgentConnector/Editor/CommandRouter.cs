@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -18,9 +19,13 @@ namespace HeraAgent
         public static async Task<object> Dispatch(string command, JObject parameters)
         {
             await s_Lock.WaitAsync();
+            var sw = Stopwatch.StartNew();
             try
             {
-                return await DispatchInternal(command, parameters);
+                var result = await DispatchInternal(command, parameters);
+                sw.Stop();
+                ResponseTimings.Set(result, "total_ms", sw.ElapsedMilliseconds);
+                return result;
             }
             finally
             {

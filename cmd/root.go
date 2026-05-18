@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/NotNull92/hera-agent/internal/client"
 )
@@ -18,12 +20,14 @@ var (
 	flagPort    int
 	flagProject string
 	flagTimeout int
+	flagVerbose bool
 )
 
 func Execute() error {
 	flag.IntVar(&flagPort, "port", 0, "Select Unity instance by active heartbeat port")
 	flag.StringVar(&flagProject, "project", "", "Select Unity instance by project path")
-	flag.IntVar(&flagTimeout, "timeout", 120000, "Request timeout in milliseconds")
+	flag.IntVar(&flagTimeout, "timeout", 60000, "Request timeout in milliseconds")
+	flag.BoolVar(&flagVerbose, "verbose", false, "Print progress + per-phase timings to stderr")
 
 	flag.Usage = func() { printHelp() }
 
@@ -104,7 +108,10 @@ func Execute() error {
 		if err != nil {
 			return nil, err
 		}
-		return client.Send(inst, command, params, timeout)
+		if command == "exec" {
+			fmt.Fprintln(os.Stderr, "[hera-agent] compiling...")
+		}
+		return sendWithProgress(inst, command, params, timeout, flagVerbose)
 	}
 
 	var resp *client.CommandResponse
@@ -142,6 +149,10 @@ func Execute() error {
 
 	printResponse(resp)
 
+	if flagVerbose {
+		printTimings(resp)
+	}
+
 	printUpdateNotice()
 
 	if !resp.Success {
@@ -149,6 +160,48 @@ func Execute() error {
 	}
 
 	return nil
+}
+
+// sendWithProgress wraps client.Send. When verbose, prints a 1-second-cadence
+// progress line to stderr so harnesses see liveness while Unity is busy.
+func sendWithProgress(inst *client.Instance, command string, params interface{}, timeoutMs int, verbose bool) (*client.CommandResponse, error) {
+	if !verbose {
+		return client.Send(inst, command, params, timeoutMs)
+	}
+	done := make(chan struct{})
+	start := time.Now()
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case t := <-ticker.C:
+				elapsed := int(t.Sub(start).Seconds())
+				fmt.Fprintf(os.Stderr, "[hera-agent] %s in progress... (%ds)\n", command, elapsed)
+			}
+		}
+	}()
+	resp, err := client.Send(inst, command, params, timeoutMs)
+	close(done)
+	return resp, err
+}
+
+func printTimings(resp *client.CommandResponse) {
+	if resp == nil || len(resp.Timings) == 0 {
+		return
+	}
+	keys := make([]string, 0, len(resp.Timings))
+	for k := range resp.Timings {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s=%dms", k, resp.Timings[k]))
+	}
+	fmt.Fprintf(os.Stderr, "[hera-agent] timings: %s\n", strings.Join(parts, " "))
 }
 
 // sendFn is the function signature for sending a command to Unity.
@@ -277,17 +330,21 @@ func readStdinIfPiped(args []string) []string {
 	return append([]string{code}, args...)
 }
 
-// splitArgs separates global flags (--port, --project, --timeout) from subcommand args.
-// Global flags must be parsed by flag.CommandLine before the subcommand runs.
+// splitArgs separates global flags (--port, --project, --timeout, --verbose)
+// from subcommand args. Global flags must be parsed by flag.CommandLine before
+// the subcommand runs.
 func splitArgs(args []string) (flags, commands []string) {
 	for i := 0; i < len(args); i++ {
-		if args[i] == "--port" || args[i] == "--project" || args[i] == "--timeout" {
+		switch args[i] {
+		case "--port", "--project", "--timeout":
 			flags = append(flags, args[i])
 			if i+1 < len(args) {
 				i++
 				flags = append(flags, args[i])
 			}
-		} else {
+		case "--verbose":
+			flags = append(flags, args[i])
+		default:
 			commands = append(commands, args[i])
 		}
 	}
@@ -317,11 +374,31 @@ Execute C#:
   exec "<code>"                 Run C# code in Unity (return required for output)
   echo '<code>' | exec          Pipe code via stdin (avoids shell escaping)
   exec "<code>" --usings x,y    Add extra using directives
+  exec "<code>" --no-cache      Skip compile/assembly cache (debug only)
 
   Examples:
     exec "Time.time"
     exec "GameObject.FindObjectsOfType<Camera>().Length"
     exec "var go = new GameObject(\"Test\"); return go.name;"
+
+  Note: identical code is served from the in-memory assembly cache
+  (warm calls skip csc). First call per Unity session is the cold path.
+
+Scene:
+  scene info                    Active scene name/path/dirty + loaded scene list
+  scene load <path|name>        Open scene (default mode: single)
+  scene load <path> --mode additive
+                                Load additively without unloading current
+  scene save [<path|name>]      Save active scene (or named scene if specified)
+  scene list                    Build Settings registered scenes
+  scene close <path|name>       Unload a non-active loaded scene (additive)
+
+  Examples:
+    scene info
+    scene load Assets/Scenes/Main.unity
+    scene load Main --mode additive
+    scene save
+    scene close Lobby
 
 Menu:
   menu "<path>"                 Execute Unity menu item by path
@@ -384,7 +461,8 @@ Asset Config:
 Global Options:
   --port <N>          Select Unity instance by active heartbeat port
   --project <path>    Select Unity instance by project path
-  --timeout <ms>      Request timeout in ms (default: 120000)
+  --timeout <ms>      Request timeout in ms (default: 60000)
+  --verbose           Print progress + per-phase timings to stderr
 
 Use "hera-agent <command> --help" for more information about a command.
 
@@ -450,6 +528,7 @@ Options:
   --usings <ns1,ns2>   Add extra using directives
   --csc <path>         Path to csc compiler (csc.dll or csc.exe). Auto-detected if omitted.
   --dotnet <path>      Path to dotnet runtime. Auto-detected if omitted.
+  --no-cache           Skip compile/assembly cache; force a fresh csc invocation.
 
 Default usings: System, System.Collections.Generic, System.IO, System.Linq,
   System.Reflection, System.Threading.Tasks, UnityEngine,
@@ -469,6 +548,31 @@ Stdin:
 
 Notes:
   - Use 'return' for output, 'return null;' for void operations
+`)
+	case "scene":
+		fmt.Print(`Usage: hera-agent scene <action> [target] [options]
+
+Actions:
+  info                          Show active scene + all loaded scenes (name, path, dirty)
+  load <path|name> [--mode M]   Open a scene. Modes: single (default), additive, additive_without_loading
+  save [<path|name>]            Save the active scene, or a named loaded scene
+  list                          List scenes registered in Build Settings
+  close <path|name>             Unload a loaded scene (cannot close the only one)
+
+Target resolution:
+  Accepts an asset path (Assets/.../Foo.unity) or a bare scene name.
+  Names are resolved through AssetDatabase by exact filename match.
+
+Examples:
+  hera-agent scene info
+  hera-agent scene load Assets/Scenes/Main.unity
+  hera-agent scene load Main --mode additive
+  hera-agent scene save
+  hera-agent scene close Lobby
+
+Notes:
+  - load --mode single fails if the active scene has unsaved changes.
+  - close fails if the target scene is dirty; save first.
 `)
 	case "menu":
 		fmt.Print(`Usage: hera-agent menu "<path>"

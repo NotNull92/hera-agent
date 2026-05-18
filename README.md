@@ -144,6 +144,7 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 |---------|-------------|
 | `editor` | Play, stop, pause, refresh |
 | `exec` | Run arbitrary C# inside Unity |
+| `scene` | Info, load, save, list, close |
 | `console` | Read, filter, clear logs |
 | `test` | Run EditMode / PlayMode tests |
 | `menu` | Execute any menu item by path |
