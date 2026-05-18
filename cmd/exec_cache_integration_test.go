@@ -62,15 +62,18 @@ func TestExecCacheColdWarm(t *testing.T) {
 
 	cold := sendExec(t, code, false)
 	t.Logf("cold timings: %+v", cold.Timings)
+	if got := cold.Timings["cache"]; got != 0 {
+		t.Errorf("cold cache = %d, want 0 (compile)", got)
+	}
 
 	warm := sendExec(t, code, false)
 	t.Logf("warm timings: %+v", warm.Timings)
 
-	if got := warm.Timings["compile_ms"]; got != 0 {
-		t.Errorf("warm compile_ms = %d, want 0 (memory cache miss)", got)
+	if got := warm.Timings["cache"]; got != 2 {
+		t.Errorf("warm cache = %d, want 2 (memory hit)", got)
 	}
-	if got := warm.Timings["load_ms"]; got != 0 {
-		t.Errorf("warm load_ms = %d, want 0 (memory cache miss)", got)
+	if got := warm.Timings["compile_ms"]; got != 0 {
+		t.Errorf("warm compile_ms = %d, want 0", got)
 	}
 }
 
@@ -84,8 +87,8 @@ func TestExecCacheNoCacheFlag(t *testing.T) {
 
 	nc := sendExec(t, code, true)
 	t.Logf("no-cache timings: %+v", nc.Timings)
-	if got := nc.Timings["compile_ms"]; got == 0 {
-		t.Errorf("no-cache compile_ms = 0, want >0 (forced recompile)")
+	if got := nc.Timings["cache"]; got != 0 {
+		t.Errorf("no-cache cache = %d, want 0 (forced compile)", got)
 	}
 }
 
@@ -108,23 +111,27 @@ func TestExecCacheLRUEviction(t *testing.T) {
 	re := sendExec(t, first, false)
 	t.Logf("re-issue of evicted entry: %+v", re.Timings)
 
-	if got := re.Timings["compile_ms"]; got != 0 {
-		t.Errorf("evicted re-issue compile_ms = %d, want 0 (disk cache should serve)", got)
-	}
-	// load_ms > 0 is the disk-hit signature; 0 means memory was still warm
-	// (eviction didn't fire — surface as a test note rather than a hard fail).
-	if got := re.Timings["load_ms"]; got == 0 {
-		t.Logf("note: load_ms=0 after %d distinct calls — eviction may not have occurred", inMemoryCap+overflow)
+	if got := re.Timings["cache"]; got != 1 {
+		t.Errorf("evicted re-issue cache = %d, want 1 (disk hit) — eviction or disk lookup failed", got)
 	}
 }
 
 // TestExecCacheALCStable checks that bursts of --no-cache calls do not leak
 // AssemblyLoadContexts. Each transient ALC must be unloaded after Invoke.
-// On Mono runtimes (no collectible ALC support), assemblies always grow — the
-// test logs but does not fail in that case.
+// Skips on Mono — collectible AssemblyLoadContext.Unload() is a no-op on
+// Unity's Mono runtime, so growth is expected and unrelated to our code.
 func TestExecCacheALCStable(t *testing.T) {
+	runtimeResp := sendExec(t, "return System.Type.GetType(\"Mono.Runtime\") != null ? \"Mono\" : \"CoreCLR\";", false)
+	var runtime string
+	if err := json.Unmarshal(runtimeResp.Data, &runtime); err != nil {
+		t.Fatalf("decode runtime: %v", err)
+	}
+	if runtime == "Mono" {
+		t.Skip("Mono runtime: collectible AssemblyLoadContext.Unload is unsupported; skipping leak check")
+	}
+
 	const burst = 30
-	const allowedGrowth = 8 // headroom for unrelated Editor activity
+	const allowedGrowth = 8
 
 	probe := "GC.Collect(); GC.WaitForPendingFinalizers(); return AppDomain.CurrentDomain.GetAssemblies().Length;"
 
@@ -140,7 +147,7 @@ func TestExecCacheALCStable(t *testing.T) {
 	t.Logf("assembly count after burst: %d (delta=%d)", after, after-before)
 
 	if after-before > allowedGrowth {
-		t.Errorf("assembly count grew by %d after %d --no-cache calls (cap=%d) — ALC unload may not be working (or runtime is Mono fallback)", after-before, burst, allowedGrowth)
+		t.Errorf("assembly count grew by %d after %d --no-cache calls — ALC unload may not be working", after-before, burst)
 	}
 }
 

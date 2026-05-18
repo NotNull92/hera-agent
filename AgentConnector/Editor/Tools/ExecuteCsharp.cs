@@ -108,10 +108,14 @@ namespace HeraAgent.Tools
             Assembly compiled = null;
             object transientAlc = null; // ALC owned by this call when --no-cache; unloaded after Invoke
 
+            // cache: 0 = freshly compiled, 1 = disk hit, 2 = memory hit
+            long cacheState = 0;
+
             if (!noCache && ExecCompileCache.TryGetAssembly(cacheKey, out compiled))
             {
                 timings["compile_ms"] = 0;
                 timings["load_ms"] = 0;
+                cacheState = 2;
             }
 
             var dllPath = Path.Combine(ExecCompileCache.BinCacheDir, cacheKey + ".dll");
@@ -125,6 +129,7 @@ namespace HeraAgent.Tools
                     ExecCompileCache.StoreAssembly(cacheKey, compiled, loaded.LoadContext);
                     timings["compile_ms"] = 0;
                     timings["load_ms"] = loadSw.ElapsedMilliseconds;
+                    cacheState = 1;
                 }
                 catch
                 {
@@ -176,6 +181,7 @@ namespace HeraAgent.Tools
                     transientAlc = loaded.LoadContext;
             }
 
+            timings["cache"] = cacheState;
             var result = Invoke(compiled, timings);
             ResponseTimings.Merge(result, timings);
 
