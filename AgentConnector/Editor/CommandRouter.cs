@@ -84,7 +84,7 @@ namespace HeraAgent
             catch (Exception ex)
             {
                 var inner = ex.InnerException ?? ex;
-                Debug.LogException(inner);
+                UnityEngine.Debug.LogException(inner);
                 return new ErrorResponse($"{command} failed: {inner.Message}");
             }
         }
