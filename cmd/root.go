@@ -43,6 +43,8 @@ func Execute() error {
 		return nil
 	}
 
+	checkBinaryPath()
+
 	category := cmdArgs[0]
 	subArgs := cmdArgs[1:]
 
@@ -79,6 +81,8 @@ func Execute() error {
 		return statusErr
 	case "asset-config":
 		return assetConfigCmd(subArgs)
+	case "doctor":
+		return doctorCmd()
 	}
 
 	inst, err := client.DiscoverInstance(flagProject, flagPort)
@@ -446,6 +450,10 @@ Custom Tools:
 Status:
   status                        Show Unity Editor state (ready, compiling, etc.)
 
+Diagnostics:
+  doctor                        Self-check: binary path, PATH resolution,
+                                duplicate installs, shell hints, Unity instances
+
 Update:
   update                        Update to the latest version
   update --check                Check for updates without installing
@@ -680,6 +688,22 @@ Reports "not responding" if heartbeat is older than 3 seconds.
 
 Example:
   hera-agent status
+`)
+	case "doctor":
+		fmt.Print(`Usage: hera-agent doctor
+
+Run a self-diagnostic. Reports the running binary path, what 'hera-agent'
+resolves to on PATH, duplicate installs, shell-specific gotchas, and any
+Unity instances visible to the Connector.
+
+Does NOT require Unity to be running. Use this first when 'hera-agent' is
+not found, points at the wrong copy, or can't see your Unity Editor.
+
+Example:
+  hera-agent doctor
+
+Environment:
+  HERA_AGENT_NO_PATH_CHECK=1   Silence the implicit per-command PATH warning.
 `)
 	case "update":
 		fmt.Print(`Usage: hera-agent update [options]

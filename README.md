@@ -153,9 +153,12 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | `reserialize` | Fix YAML after text edits |
 | `list` | Show all tools + schemas |
 | `status` | Connection & project info |
+| `doctor` | Self-diagnose PATH, installs, shell, Unity reachability |
 | `update` | Self-update the binary |
 | `install` | Install the CLI to PATH |
 | `uninstall` | Remove the CLI from PATH |
+
+Stuck? Run `hera-agent doctor`, or see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
