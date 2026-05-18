@@ -181,13 +181,16 @@ namespace HeraAgent.Tools
             if (scene.isDirty)
                 return new ErrorResponse($"Scene '{scene.name}' has unsaved changes. Save first.");
 
+            // Snapshot identity before CloseScene; the Scene struct is invalidated by it.
+            var capturedName = scene.name;
+            var capturedPath = scene.path;
             bool ok = EditorSceneManager.CloseScene(scene, true);
             if (!ok)
-                return new ErrorResponse($"Failed to close scene: {scene.name}");
-            return new SuccessResponse($"Closed scene: {scene.name}", new
+                return new ErrorResponse($"Failed to close scene: {capturedName}");
+            return new SuccessResponse($"Closed scene: {capturedName}", new
             {
-                name = scene.name,
-                path = scene.path,
+                name = capturedName,
+                path = capturedPath,
             });
         }
 
