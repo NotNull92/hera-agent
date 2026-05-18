@@ -11,23 +11,31 @@
 
 **Measurement, not guessing — give AI hands on the live Editor.**
 
-<!--
-  Demo GIF placeholder — uncomment after recording:
+<br><br>
 
-  <br><br>
-  <img src="docs/assets/demo.gif" width="80%" alt="hera-agent demo">
+**Install → Connect → Let AI drive Unity**
 
-  Recording instructions (Windows):
-  - Tool: ScreenToGif (https://www.screentogif.com/) — free, native, exports GIF directly
-  - Length: 15-25 seconds
-  - Resolution: 1280x720 recommended, 5MB max
-  - Scenario:
-      1. (3s)  hera-agent status                  → "Connected: true | Project: MyGame"
-      2. (5s)  hera-agent editor play --wait      → Unity Play Mode 진입 visible
-      3. (8s)  hera-agent exec "return Camera.main.transform.position;" → result
-      4. (5s)  hera-agent console --type error    → error logs
-  - Save to: docs/assets/demo.gif
--->
+<img src="docs/video/hera-agent-install-status(not-connected-unity)-uninstall.gif" width="80%" alt="hera-agent CLI install, status, uninstall">
+
+<br><br>
+
+**UPM Package Installation**
+
+<img src="docs/video/hera-agent-install-UPM-scene.gif" width="80%" alt="Unity UPM package installation">
+
+<br><br>
+
+**Check Unity Connection**
+
+<img src="docs/video/hera-agent-status-connected-unity.gif" width="80%" alt="hera-agent status with connected Unity">
+
+<br><br>
+
+**Claude Code + hera-agent Scene Transition**
+
+<img src="docs/video/claude-code-hera-agent-scene-transition.gif" width="80%" alt="Claude Code using hera-agent for scene transition">
+
+<br><br>
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Commands](#commands) · [Custom Tools](#custom-tools) · [Architecture](#architecture)
 
