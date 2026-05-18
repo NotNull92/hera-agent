@@ -11,23 +11,31 @@
 
 **추측 대신 실측 — AI에게 살아 있는 Unity를 만지게 합니다.**
 
-<!--
-  데모 GIF placeholder — 녹화 후 아래 주석 해제:
+<br><br>
 
-  <br><br>
-  <img src="docs/assets/demo.gif" width="80%" alt="hera-agent demo">
+**설치 → 연결 → AI가 Unity를 직접 제어**
 
-  녹화 가이드 (Windows):
-  - 도구: ScreenToGif (https://www.screentogif.com/) — 무료, Windows 네이티브, GIF 직접 출력
-  - 길이: 15-25초
-  - 해상도: 1280x720 권장, 5MB 이하
-  - 시나리오:
-      1. (3초) hera-agent status                  → "Connected: true | Project: MyGame"
-      2. (5초) hera-agent editor play --wait      → Unity Play Mode 진입 visible
-      3. (8초) hera-agent exec "return Camera.main.transform.position;" → result
-      4. (5초) hera-agent console --type error    → error logs
-  - 저장 위치: docs/assets/demo.gif
--->
+<img src="docs/video/hera-agent-install-status(not-connected-unity)-uninstall.gif" width="80%" alt="hera-agent CLI 설치, 상태 확인, 제거">
+
+<br><br>
+
+**UPM 패키지 설치**
+
+<img src="docs/video/hera-agent-install-UPM-scene.gif" width="80%" alt="Unity UPM 패키지 설치">
+
+<br><br>
+
+**Unity 연결 상태 확인**
+
+<img src="docs/video/hera-agent-status-connected-unity.gif" width="80%" alt="hera-agent Unity 연결 상태">
+
+<br><br>
+
+**Claude Code + hera-agent 씬 전환**
+
+<img src="docs/video/claude-code-hera-agent-scene-transition.gif" width="80%" alt="Claude Code가 hera-agent로 씬 전환">
+
+<br><br>
 
 [Installation](#설치) · [Quick Start](#퀵-스타트) · [Commands](#명령어) · [Custom Tools](#커스텀-툴) · [Architecture](#구조)
 
