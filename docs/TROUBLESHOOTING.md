@@ -123,6 +123,18 @@ hera-agent --port 8765 scene info
 
 ---
 
+## `hera-agent.exe.bak` left behind after update
+
+`update` swaps the binary via rename-dance: the old `.exe` becomes `.bak`, the
+new download is renamed into place, then `.bak` is removed. On Windows the
+outgoing process still holds an image-mapping on `.bak`, so direct removal
+fails with "Access is denied" and a deferred `cmd.exe del` is scheduled
+instead. If you see a leftover `hera-agent.exe.bak` next to the binary, it
+either failed to delete (rare) or your terminal was closed before the
+deferred delete fired. Safe to remove by hand. `uninstall` sweeps it too.
+
+---
+
 ## Stale heartbeat
 
 `hera-agent doctor` reports `(stale)` next to an instance whose last

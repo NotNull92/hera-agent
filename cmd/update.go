@@ -87,7 +87,13 @@ func updateCmd(args []string) error {
 		return fmt.Errorf("replace failed: %w", err)
 	}
 
-	_ = os.Remove(backup)
+	// On Windows the just-renamed .bak can still be memory-mapped by the
+	// outgoing process, so direct removal fails with "Access is denied".
+	// scheduleDelete falls back to a deferred cmd.exe delete in that case;
+	// otherwise .bak files accumulate across updates and clutter installDir.
+	if err := scheduleDelete(backup); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not remove backup %s: %v\n", backup, err)
+	}
 
 	fmt.Printf("Updated to %s\n", latest)
 	return nil

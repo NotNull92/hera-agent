@@ -3,8 +3,8 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -41,40 +41,52 @@ func removeFromPATH(installDir string) error {
 func removeBinaryAndDir(exe, installDir string) error {
 	binPath := filepath.Join(installDir, "hera-agent.exe")
 
-	// Try to remove the binary in installDir (WindowsApps).
-	// If it's the currently running executable, Windows locks it.
-	// Use a deferred deletion via cmd.exe so the file disappears after we exit.
-	if _, err := os.Stat(binPath); err == nil {
-		if rmErr := os.Remove(binPath); rmErr != nil {
-			// Self-deletion on Windows fails with "Access is denied".
-			// Schedule a delayed delete that runs after this process terminates.
-			quoted := `"` + binPath + `"`
-			cmd := exec.Command("cmd", "/c", "timeout /t 1 >nul && del /f "+quoted)
-			_ = cmd.Start()
-		}
+	// Remove the binary in installDir (WindowsApps). If it is the running
+	// executable Windows locks it, so fall back to deferred deletion via
+	// cmd.exe — the file disappears after this process exits.
+	if err := scheduleDelete(binPath); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not schedule delete of %s: %v\n", binPath, err)
 	}
+
+	// Sweep stale artifacts left by `update`: the rename-dance backup
+	// (hera-agent.exe.bak) and any partial download (hera-agent-*.tmp).
+	// Without this they accumulate forever and surface in 'doctor' as
+	// confusing duplicates after the user already ran uninstall.
+	sweepArtifacts(installDir)
 
 	// installDir is WindowsApps (a shared OS directory) — never remove it.
-	// We only own the binary inside.
+	// We only own the binary and its sidecars inside.
 
-	// Also clean up the legacy install location (%LOCALAPPDATA%\hera-agent)
-	// in case the user migrated and we never cleaned it up.
-	legacyDir, legacyBin := legacyInstallPaths()
-	if legacyBin != "" {
-		if _, err := os.Stat(legacyBin); err == nil && legacyBin != exe {
-			_ = os.Remove(legacyBin)
+	// Clean up the legacy install location (%LOCALAPPDATA%\hera-agent)
+	// for users who installed before v0.0.6. RemoveAll instead of Remove
+	// because .bak / .tmp leftovers leave the directory non-empty.
+	legacyDir, _ := legacyInstallPaths()
+	if legacyDir != "" {
+		if _, err := os.Stat(legacyDir); err == nil {
+			if rmErr := os.RemoveAll(legacyDir); rmErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not remove legacy dir %s: %v\n", legacyDir, rmErr)
+			}
 		}
-		_ = os.Remove(legacyDir)
 	}
 
-	// Also remove the running binary itself if it's outside installDir.
-	// Again, use deferred deletion if direct removal fails.
+	// Remove the running binary itself if it lives outside installDir
+	// (e.g. an ad-hoc `go build` copy the user is invoking directly).
 	if exe != "" && exe != binPath {
-		if rmErr := os.Remove(exe); rmErr != nil {
-			quoted := `"` + exe + `"`
-			cmd := exec.Command("cmd", "/c", "timeout /t 1 >nul && del /f "+quoted)
-			_ = cmd.Start()
+		if err := scheduleDelete(exe); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not schedule delete of %s: %v\n", exe, err)
 		}
 	}
 	return nil
+}
+
+func sweepArtifacts(dir string) {
+	patterns := []string{"hera-agent.exe.bak", "hera-agent-*.tmp"}
+	for _, pat := range patterns {
+		matches, _ := filepath.Glob(filepath.Join(dir, pat))
+		for _, m := range matches {
+			if err := scheduleDelete(m); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not remove %s: %v\n", m, err)
+			}
+		}
+	}
 }
