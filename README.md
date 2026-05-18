@@ -64,9 +64,9 @@ Guessing is expensive. Measurement is the command.
 └─────────────┘                └─────────────────┘
 ```
 
-**~800 lines of core Go. ~2,300 lines of C#. Nothing else.**
+**~2,600 lines of core Go. ~3,900 lines of C#. Nothing else.**
 
-> Tests, TUI, and platform adapters add ~2,200 more lines — but the engine that talks to Unity stays lean.
+> Tests, TUI, and asset-config layer add ~2,300 more lines — but the engine that talks to Unity stays lean.
 
 ---
 
@@ -162,8 +162,8 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | `list` | Show all tools + schemas |
 | `status` | Connection & project info |
 | `doctor` | Self-diagnose PATH, installs, shell, Unity reachability |
+| `asset-config` | Toggle optional asset integrations (TUI / list / enable / disable / detect / `--json`) |
 | `update` | Self-update the binary |
-| `install` | Install the CLI to PATH |
 | `uninstall` | Remove the CLI from PATH |
 
 Stuck? Run `hera-agent doctor`, or see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
@@ -235,7 +235,7 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 ```
 ┌─────────────┐         ┌─────────────────────────────┐
 │   CLI Go    │         │      Unity Editor           │
-│  (~800 LoC core) │◄───────►│  ┌─────────────────────┐    │
+│  (~2.6k LoC core) │◄──────►│  ┌─────────────────────┐    │
 │             │  HTTP   │  │   HttpServer        │    │
 │ • discovers │  8090+  │  │   (localhost)       │    │
 │ • sends cmd │         │  └──────────┬──────────┘    │
@@ -271,9 +271,10 @@ hera-agent spawn --x 1 --y 0 --z 5 --prefab Goblin
 ## Global Flags
 
 ```bash
---port <N>       # Override auto-discovery
---project <path> # Select by project path
---timeout <ms>   # HTTP timeout (default: 120s)
+--port <N>       # Select Unity instance by active heartbeat port
+--project <path> # Select Unity instance by project path
+--timeout <ms>   # Request timeout in ms (default: 60000)
+--verbose        # Print progress + per-phase timings to stderr
 ```
 
 ---
