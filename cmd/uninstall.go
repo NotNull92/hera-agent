@@ -51,14 +51,17 @@ func uninstallCmd() error {
 	}
 
 	// Step 5: Remove binary and install directory (OS-specific)
-	if delErr := removeBinaryAndDir(exe, installDir); delErr != nil {
+	deferred, delErr := removeBinaryAndDir(exe, installDir)
+	if delErr != nil {
 		printUninstallWarn("Binary removal", delErr)
+	} else if deferred {
+		printUninstallDone("Scheduled removal of binary (completes in ~2s)")
 	} else {
 		printUninstallDone("Removed binary and install directory")
 	}
 
 	// Step 6: Success
-	printUninstallSuccess()
+	printUninstallSuccess(deferred)
 	return nil
 }
 
@@ -119,10 +122,14 @@ func printUninstallDone(msg string) {
 	fmt.Printf("  %s %s\n", tui.CheckStyle.Render("✓"), msg)
 }
 
-func printUninstallSuccess() {
+func printUninstallSuccess(deferred bool) {
 	fmt.Println()
 	msg := "Your instrument has been released.\n\nNo trace remains upon the estate."
 	if runtime.GOOS == "windows" {
+		if deferred {
+			msg += "\n\nThe binary is locked by this process and will be removed by a"
+			msg += "\nbackground helper within ~2 seconds. Close this terminal afterwards."
+		}
 		msg += "\n\nFully close and reopen your IDE or terminal application"
 		msg += "\n(not merely the terminal tab) for PATH changes to take full effect."
 	} else {

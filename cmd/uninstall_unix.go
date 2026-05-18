@@ -41,11 +41,11 @@ func removeFromPATH(installDir string) error {
 	return nil
 }
 
-func removeBinaryAndDir(exe, installDir string) error {
+func removeBinaryAndDir(exe, installDir string) (deferred bool, err error) {
 	binPath := filepath.Join(installDir, "hera-agent")
-	if _, err := os.Stat(binPath); err == nil {
+	if _, statErr := os.Stat(binPath); statErr == nil {
 		if rmErr := os.Remove(binPath); rmErr != nil {
-			return rmErr
+			return false, rmErr
 		}
 	}
 	// Remove installDir if empty
@@ -55,5 +55,5 @@ func removeBinaryAndDir(exe, installDir string) error {
 	if exe != "" && exe != binPath {
 		_ = os.Remove(exe)
 	}
-	return nil
+	return false, nil
 }

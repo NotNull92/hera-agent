@@ -89,9 +89,10 @@ func updateCmd(args []string) error {
 
 	// On Windows the just-renamed .bak can still be memory-mapped by the
 	// outgoing process, so direct removal fails with "Access is denied".
-	// scheduleDelete falls back to a deferred cmd.exe delete in that case;
-	// otherwise .bak files accumulate across updates and clutter installDir.
-	if err := scheduleDelete(backup); err != nil {
+	// scheduleDelete falls back to a deferred PowerShell delete in that
+	// case; otherwise .bak files accumulate across updates and clutter
+	// installDir.
+	if _, err := scheduleDelete(backup); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not remove backup %s: %v\n", backup, err)
 	}
 

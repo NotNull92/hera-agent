@@ -5,10 +5,11 @@ package cmd
 import "os"
 
 // scheduleDelete removes the file immediately. Unix does not lock running
-// executables, so deferred deletion is unnecessary.
-func scheduleDelete(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil
+// executables, so deferred deletion is never required and the deferred
+// return value is always false.
+func scheduleDelete(path string) (deferred bool, err error) {
+	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
+		return false, nil
 	}
-	return os.Remove(path)
+	return false, os.Remove(path)
 }
