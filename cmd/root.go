@@ -133,6 +133,10 @@ func Execute() error {
 		}
 		resp, err = testCmd(subArgs, testSend, currentInst.Port)
 	case "exec":
+		subArgs, err = readExecFileIfPresent(subArgs)
+		if err != nil {
+			return err
+		}
 		subArgs = readStdinIfPiped(subArgs)
 		var params map[string]interface{}
 		params, err = buildParams(subArgs, nil)
@@ -327,6 +331,46 @@ func buildParams(args []string, base map[string]interface{}) (map[string]interfa
 	return params, nil
 }
 
+// readExecFileIfPresent strips --file <path> and prepends file contents as the
+// first positional arg. Returns args unchanged when --file is absent. Lets
+// agents avoid shell-escaping long code blocks.
+// Precedence (handled by caller): positional / stdin > --file. So if positional
+// already provides code, --file is silently ignored (still stripped from args).
+func readExecFileIfPresent(args []string) ([]string, error) {
+	var out []string
+	var filePath string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--file" {
+			if i+1 >= len(args) {
+				return nil, fmt.Errorf("--file requires a path argument")
+			}
+			filePath = args[i+1]
+			i++
+			continue
+		}
+		out = append(out, args[i])
+	}
+	if filePath == "" {
+		return out, nil
+	}
+	hasPositional := false
+	for _, a := range out {
+		if !strings.HasPrefix(a, "--") {
+			hasPositional = true
+			break
+		}
+	}
+	if hasPositional {
+		return out, nil
+	}
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("read --file %s: %w", filePath, err)
+	}
+	code := strings.TrimRight(string(data), "\n\r")
+	return append([]string{code}, out...), nil
+}
+
 // readStdinIfPiped reads stdin when piped and prepends it as the first positional arg.
 func readStdinIfPiped(args []string) []string {
 	info, err := os.Stdin.Stat()
@@ -387,8 +431,13 @@ Console:
 Execute C#:
   exec "<code>"                 Run C# code in Unity (return required for output)
   echo '<code>' | exec          Pipe code via stdin (avoids shell escaping)
+  exec --file path.cs           Load code from file (positional/stdin take precedence)
   exec "<code>" --usings x,y    Add extra using directives
   exec "<code>" --no-cache      Skip compile/assembly cache (debug only)
+
+Log:
+  log "<message>"               Write to Unity console (no compile cost)
+  log "<msg>" --level warning   Levels: log (default), warning, error
 
   Examples:
     exec "Time.time"
@@ -546,6 +595,7 @@ Use 'return' to get output. Add --usings for types outside default namespaces.
 
 Options:
   --usings <ns1,ns2>   Add extra using directives
+  --file <path>        Load code from file. Positional/stdin take precedence.
   --csc <path>         Path to csc compiler (csc.dll or csc.exe). Auto-detected if omitted.
   --dotnet <path>      Path to dotnet runtime. Auto-detected if omitted.
   --no-cache           Skip compile/assembly cache; force a fresh csc invocation.
@@ -561,10 +611,15 @@ Examples:
   echo 'return EditorSceneManager.GetActiveScene().name;' | hera-agent exec
   echo 'Debug.Log("hello"); return null;' | hera-agent exec
   hera-agent exec "return World.All.Count;" --usings Unity.Entities
+  hera-agent exec --file scripts/probe.cs
 
 Stdin:
   Pipe code via stdin to avoid shell escaping issues.
   echo '<code>' | hera-agent exec [--usings ns1,ns2]
+
+File:
+  --file <path> reads code from disk. Skipped if stdin or a positional code
+  argument is already present (those win over --file).
 
 Notes:
   - Use 'return' for output, 'return null;' for void operations
@@ -683,6 +738,20 @@ Examples:
   hera-agent test --mode PlayMode
   hera-agent test --filter MyNamespace.MyTests
   hera-agent test --mode EditMode --filter MyNamespace.MyTests.SpecificTest
+`)
+	case "log":
+		fmt.Print(`Usage: hera-agent log "<message>" [--level <log|warning|error>]
+
+Write a message to the Unity console. Faster than 'exec "Debug.Log(...)"'
+because there's no C# compile step.
+
+Options:
+  --level <log|warning|error>    Log level (default: log)
+
+Examples:
+  hera-agent log "checkpoint A"
+  hera-agent log "missing prefab" --level warning
+  hera-agent log "build failed" --level error
 `)
 	case "list":
 		fmt.Print(`Usage: hera-agent list [options]

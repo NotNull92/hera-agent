@@ -162,26 +162,6 @@ namespace HeraAgent
             }
         }
 
-        public static List<object> GetParameterSchema(Type paramsType)
-        {
-            if (paramsType == null) return new List<object>();
-
-            return paramsType.GetProperties()
-                .Select(p =>
-                {
-                    var attr = p.GetCustomAttribute<ToolParameterAttribute>();
-                    return new
-                    {
-                        name = StringCaseUtility.ToSnakeCase(p.Name),
-                        type = p.PropertyType.Name,
-                        description = attr?.Description ?? "",
-                        required = attr?.Required ?? false,
-                    };
-                })
-                .Cast<object>()
-                .ToList();
-        }
-
         private static ToolMetadata GetToolMetadata(Type toolType)
         {
             try

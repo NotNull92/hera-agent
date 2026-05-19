@@ -16,8 +16,10 @@ namespace HeraAgent
 
         static double s_LastWrite;
         const double INTERVAL = 0.5;
+        const double COMPILE_START_TIMEOUT = 30.0; // hard cap awaiting compile-start after request
         static string s_ForcedState;
         static double s_CompileRequestTime;
+        static bool s_SawCompileStart;
         static string s_FilePath;
 
         static Heartbeat()
@@ -53,6 +55,7 @@ namespace HeraAgent
         public static void MarkCompileRequested()
         {
             s_CompileRequestTime = EditorApplication.timeSinceStartup;
+            s_SawCompileStart = false;
             WriteState("compiling");
         }
 
@@ -66,12 +69,23 @@ namespace HeraAgent
 
             if (s_CompileRequestTime > 0)
             {
-                if (now - s_CompileRequestTime < 3.0 && EditorApplication.isCompiling == false)
+                if (EditorApplication.isCompiling)
+                    s_SawCompileStart = true;
+
+                var elapsed = now - s_CompileRequestTime;
+                // Keep "compiling" forced while Unity is actively compiling OR we
+                // are still inside the start-up window waiting for compile to
+                // actually begin. Without this, a slow compile-start would let
+                // a "ready" tick slip out and trick CLI pollers into a premature
+                // exec, which then fails against not-yet-rebuilt code.
+                var awaitingStart = !s_SawCompileStart && elapsed < COMPILE_START_TIMEOUT;
+                if (EditorApplication.isCompiling || awaitingStart)
                 {
                     Write();
                     return;
                 }
                 s_CompileRequestTime = 0;
+                s_SawCompileStart = false;
             }
 
             s_ForcedState = null;

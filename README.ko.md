@@ -149,7 +149,8 @@ hera-agent console --type error
 | 명령어 | 기능 |
 |---------|-------------|
 | `editor` | Play, stop, pause, refresh |
-| `exec` | Unity 내부에서 C# 코드 실행 |
+| `exec` | Unity 내부에서 C# 코드 실행 (`--file <path>` 로 긴 코드 로드) |
+| `log` | csc 컴파일 없이 Unity 콘솔에 메시지 출력 |
 | `scene` | 씬 조회/로드/저장/목록/언로드 |
 | `console` | 로그 읽기, 필터링, 삭제 |
 | `test` | EditMode / PlayMode 테스트 실행 |

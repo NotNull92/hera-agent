@@ -303,8 +303,15 @@ namespace HeraAgent.Tools
 
                 using (proc)
                 {
-                    var stdout = proc.StandardOutput.ReadToEnd();
-                    var stderr = proc.StandardError.ReadToEnd();
+                    // Async drain so a large stderr (hundreds of compile errors) cannot
+                    // fill the pipe buffer and deadlock the synchronous read sibling.
+                    var stdoutSb = new StringBuilder();
+                    var stderrSb = new StringBuilder();
+                    proc.OutputDataReceived += (_, e) => { if (e.Data != null) stdoutSb.AppendLine(e.Data); };
+                    proc.ErrorDataReceived += (_, e) => { if (e.Data != null) stderrSb.AppendLine(e.Data); };
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+
                     if (!proc.WaitForExit(30000))
                     {
                         try { proc.Kill(); } catch { }
@@ -312,9 +319,14 @@ namespace HeraAgent.Tools
                             "EXEC_COMPILE_TIMEOUT",
                             "Compilation timed out (30s). The compiler process was killed.") };
                     }
+                    // WaitForExit(int) returning true does not guarantee the async
+                    // pipe drains have flushed. The parameterless overload does.
+                    proc.WaitForExit();
 
                     if (proc.ExitCode != 0)
                     {
+                        var stdout = stdoutSb.ToString();
+                        var stderr = stderrSb.ToString();
                         var output = string.IsNullOrEmpty(stderr) ? stdout : stderr;
                         var parsed = ParseErrors(output);
                         return new CompileResult { Error = new ErrorResponse(

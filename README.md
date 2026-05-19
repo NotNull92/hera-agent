@@ -151,7 +151,8 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | Command | What it does |
 |---------|-------------|
 | `editor` | Play, stop, pause, refresh |
-| `exec` | Run arbitrary C# inside Unity |
+| `exec` | Run arbitrary C# inside Unity (`--file <path>` for long code) |
+| `log` | Write to Unity console without csc compile cost |
 | `scene` | Info, load, save, list, close |
 | `console` | Read, filter, clear logs |
 | `test` | Run EditMode / PlayMode tests |
