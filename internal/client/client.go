@@ -64,6 +64,57 @@ type CommandResponse struct {
 	Timings     map[string]int64 `json:"timings,omitempty"`
 }
 
+// doWithReloadRetry sends the POST request and transparently retries on
+// connection-refused errors while Unity's HTTP server is down between
+// domain reloads. Only the network-transport error path retries; once a
+// connection is established the request is considered delivered (no
+// double-dispatch). Cap is reloadRetryMax * reloadRetryDelay (~5s).
+func doWithReloadRetry(ctx context.Context, url string, body []byte, port int) (*http.Response, error) {
+	const reloadRetryMax = 10
+	const reloadRetryDelay = 500 * time.Millisecond
+	var lastErr error
+	for attempt := 0; attempt <= reloadRetryMax; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := sharedHTTPClient.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
+		if !isConnectionRefused(err) {
+			return nil, fmt.Errorf("cannot connect to Unity at port %d: %v", port, err)
+		}
+		if attempt == reloadRetryMax {
+			break
+		}
+		// Heartbeat read is cheap; bail out early if Unity is reported stopped
+		// so we don't waste 5s retrying an editor that's already gone.
+		if inst, hbErr := FindByPort(port); hbErr == nil && inst.State == "stopped" {
+			return nil, fmt.Errorf("unity at port %d has stopped", port)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(reloadRetryDelay):
+		}
+	}
+	return nil, fmt.Errorf("cannot connect to Unity at port %d after %d retries: %v",
+		port, reloadRetryMax, lastErr)
+}
+
+func isConnectionRefused(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "connection refused") ||
+		strings.Contains(s, "actively refused") || // Windows wording
+		strings.Contains(s, "No connection could be made")
+}
+
 // isProcessDead returns true only when the process is confirmed to not exist.
 // Permission errors or transient failures return false (not confirmed dead),
 // so the instance file is preserved.
@@ -236,15 +287,9 @@ func Send(inst *Instance, command string, params interface{}, timeoutMs int) (*C
 		defer cancel()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	resp, err := doWithReloadRetry(ctx, url, body, inst.Port)
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := sharedHTTPClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("cannot connect to Unity at port %d: %v", inst.Port, err)
 	}
 	defer resp.Body.Close()
 

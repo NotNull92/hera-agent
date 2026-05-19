@@ -62,6 +62,11 @@ func updateCmd(args []string) error {
 		return fmt.Errorf("cannot resolve binary path: %w", err)
 	}
 
+	// Sweep stale *.bak files left by prior failed/interrupted updates.
+	// Without this, a subsequent update's `Rename(exe, exe+".bak")` fails
+	// with "Access is denied" on Windows because the target already exists.
+	sweepBackups(filepath.Dir(exe))
+
 	fmt.Printf("Downloading %s...\n", asset.Name)
 
 	tmpFile, err := download(asset.BrowserDownloadURL, filepath.Dir(exe))
@@ -127,6 +132,27 @@ func findAsset(assets []ghAsset) *ghAsset {
 		}
 	}
 	return nil
+}
+
+// sweepBackups removes lingering hera-agent*.bak files in the install dir.
+// On Windows the in-use binary can hold a lock on the .bak rename target,
+// so prior runs may have failed to delete it. Best-effort: log warnings,
+// never fail the update.
+func sweepBackups(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if !strings.HasPrefix(name, "hera-agent") || !strings.HasSuffix(name, ".bak") {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		if err := os.Remove(path); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: stale backup left in place: %s (%v)\n", path, err)
+		}
+	}
 }
 
 func download(url string, targetDir string) (string, error) {
