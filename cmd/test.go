@@ -85,6 +85,9 @@ func pollTestResults(port int) (*client.CommandResponse, error) {
 
 	resultsPath := filepath.Join(home, ".hera-agent", "status", fmt.Sprintf("test-results-%d.json", port))
 	deadline := time.Now().Add(10 * time.Minute)
+	const pidCheckEvery = 5 * time.Second
+	lastPidCheck := time.Now()
+	var lastPid int
 
 	for time.Now().Before(deadline) {
 		time.Sleep(500 * time.Millisecond)
@@ -99,10 +102,23 @@ func pollTestResults(port int) (*client.CommandResponse, error) {
 			return &resp, nil
 		}
 
-		// Check Unity process is still alive (heartbeat may be stale during domain reload)
-		inst, err := readStatus(port)
-		if err == nil && inst.State == "stopped" {
-			return nil, fmt.Errorf("unity editor has stopped (port %d)", port)
+		// State check (cheap): instance writes "stopped" on graceful quit.
+		inst, statusErr := readStatus(port)
+		if statusErr == nil {
+			if inst.State == "stopped" {
+				return nil, fmt.Errorf("unity editor has stopped (port %d)", port)
+			}
+			lastPid = inst.PID
+		}
+
+		// PID liveness (more expensive): catches the case where Unity crashed
+		// during a domain reload — state stays mid-transition forever otherwise.
+		// Done every pidCheckEvery seconds rather than every tick.
+		if lastPid > 0 && time.Since(lastPidCheck) >= pidCheckEvery {
+			lastPidCheck = time.Now()
+			if client.IsProcessDead(lastPid) {
+				return nil, fmt.Errorf("unity editor process %d is no longer running", lastPid)
+			}
 		}
 	}
 

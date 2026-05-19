@@ -3,20 +3,52 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using UnityEditor;
 
 namespace HeraAgent
 {
     /// <summary>
     /// Finds [HeraTool] handlers on demand via reflection.
-    /// No caching, no registration — every call scans live.
+    /// Result is cached per assembly-reload — a fresh scan happens only when
+    /// Unity reloads the domain, which is also when new tools could appear.
     /// </summary>
+    [InitializeOnLoad]
     public static class ToolDiscovery
     {
-        public static MethodInfo FindHandler(string command)
+        private struct ToolEntry
         {
-            MethodInfo found = null;
-            Type foundType = null;
+            public string Name;
+            public Type Type;
+            public HeraToolAttribute Attr;
+            public MethodInfo Handler;
+        }
 
+        private static Dictionary<string, ToolEntry> s_Cache;
+        private static readonly object s_CacheLock = new object();
+
+        static ToolDiscovery()
+        {
+            AssemblyReloadEvents.afterAssemblyReload += InvalidateCache;
+        }
+
+        private static void InvalidateCache()
+        {
+            lock (s_CacheLock) s_Cache = null;
+        }
+
+        private static Dictionary<string, ToolEntry> GetCache()
+        {
+            lock (s_CacheLock)
+            {
+                if (s_Cache != null) return s_Cache;
+                s_Cache = BuildCache();
+                return s_Cache;
+            }
+        }
+
+        private static Dictionary<string, ToolEntry> BuildCache()
+        {
+            var cache = new Dictionary<string, ToolEntry>();
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] types;
@@ -25,42 +57,44 @@ namespace HeraAgent
 
                 foreach (var type in types)
                 {
-                    if (type.IsClass == false) continue;
+                    if (!type.IsClass) continue;
                     var attr = type.GetCustomAttribute<HeraToolAttribute>();
                     if (attr == null) continue;
+                    if (!attr.Enabled) continue;
 
                     var name = attr.Name ?? StringCaseUtility.ToSnakeCase(type.Name);
-                    if (name != command) continue;
-
-                    // Check for static method first (traditional tools)
-                    var staticMethod = type.GetMethod("HandleCommand",
-                        BindingFlags.Public | BindingFlags.Static, null,
-                        new[] { typeof(JObject) }, null);
-
-                    // Check for instance method (class-based tools)
-                    var instanceMethod = type.GetMethod("HandleCommand",
-                        BindingFlags.Public | BindingFlags.Instance, null,
-                        new[] { typeof(JObject) }, null);
-
-                    // Prefer static method if both exist
-                    var method = staticMethod ?? instanceMethod;
-
-                    if (method == null) continue;
-
-                    if (found != null)
+                    if (cache.TryGetValue(name, out var existing))
                     {
                         UnityEngine.Debug.LogError(
-                            $"[Hera] Duplicate tool '{command}': " +
-                            $"{foundType.FullName} and {type.FullName}. Using first found.");
+                            $"[Hera] Duplicate tool name '{name}': " +
+                            $"{existing.Type.FullName} and {type.FullName}. " +
+                            $"Rename one or remove the duplicate.");
                         continue;
                     }
 
-                    found = method;
-                    foundType = type;
+                    var staticMethod = type.GetMethod("HandleCommand",
+                        BindingFlags.Public | BindingFlags.Static, null,
+                        new[] { typeof(JObject) }, null);
+                    var instanceMethod = type.GetMethod("HandleCommand",
+                        BindingFlags.Public | BindingFlags.Instance, null,
+                        new[] { typeof(JObject) }, null);
+                    var handler = staticMethod ?? instanceMethod;
+
+                    cache[name] = new ToolEntry
+                    {
+                        Name = name,
+                        Type = type,
+                        Attr = attr,
+                        Handler = handler,
+                    };
                 }
             }
+            return cache;
+        }
 
-            return found;
+        public static MethodInfo FindHandler(string command)
+        {
+            return GetCache().TryGetValue(command, out var entry) ? entry.Handler : null;
         }
 
         /// <summary>
@@ -133,33 +167,8 @@ namespace HeraAgent
 
         private static IEnumerable<(string name, Type type, HeraToolAttribute attr)> EnumerateTools()
         {
-            var seen = new Dictionary<string, Type>();
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                Type[] types;
-                try { types = assembly.GetTypes(); }
-                catch (ReflectionTypeLoadException) { continue; }
-
-                foreach (var type in types)
-                {
-                    if (!type.IsClass) continue;
-                    var attr = type.GetCustomAttribute<HeraToolAttribute>();
-                    if (attr == null) continue;
-                    if (!attr.Enabled) continue;
-
-                    var name = attr.Name ?? StringCaseUtility.ToSnakeCase(type.Name);
-                    if (seen.TryGetValue(name, out var existing))
-                    {
-                        UnityEngine.Debug.LogError(
-                            $"[Hera] Duplicate tool name '{name}': " +
-                            $"{existing.FullName} and {type.FullName}. " +
-                            $"Rename one or remove the duplicate.");
-                        continue;
-                    }
-                    seen[name] = type;
-                    yield return (name, type, attr);
-                }
-            }
+            foreach (var entry in GetCache().Values)
+                yield return (entry.Name, entry.Type, entry.Attr);
         }
 
         private static ToolMetadata GetToolMetadata(Type toolType)

@@ -2,15 +2,35 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// sharedHTTPClient is the package-level singleton used by all Send() calls.
+// Reusing it lets the connection pool keep idle keep-alive sockets open
+// instead of allocating a fresh dialer + TCP handshake on every call.
+// Per-request timeout comes from Request.Context so the singleton's own
+// Timeout stays unset.
+var sharedHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   2 * time.Second,
+			KeepAlive: 15 * time.Second,
+		}).DialContext,
+		MaxIdleConns:        4,
+		MaxIdleConnsPerHost: 2,
+		IdleConnTimeout:     30 * time.Second,
+		DisableCompression:  true, // localhost, gzip cost > benefit
+	},
+}
 
 // Instance represents a running Unity Editor discovered from ~/.hera-agent/instances/.
 type Instance struct {
@@ -49,6 +69,11 @@ type CommandResponse struct {
 // so the instance file is preserved.
 // Defaults to the OS-specific implementation; overridden in tests.
 var isProcessDead = checkProcessDead
+
+// IsProcessDead is the public probe used by polling commands that want to
+// detect a crashed Unity Editor without waiting for the heartbeat to stale.
+// Returns true only when the OS confirms the process is gone.
+func IsProcessDead(pid int) bool { return isProcessDead(pid) }
 
 func instancesDir() string {
 	home, _ := os.UserHomeDir()
@@ -203,9 +228,21 @@ func Send(inst *Instance, command string, params interface{}, timeoutMs int) (*C
 	}
 
 	url := fmt.Sprintf("http://127.0.0.1:%d/command", inst.Port)
-	httpClient := &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond}
 
-	resp, err := httpClient.Post(url, "application/json", bytes.NewReader(body))
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if timeoutMs > 0 {
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
+		defer cancel()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := sharedHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to Unity at port %d: %v", inst.Port, err)
 	}

@@ -2,6 +2,7 @@ package assetconfig
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -178,7 +179,7 @@ func ToggleAsset(id string) (*AssetConfig, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("asset %q not found in config", id)
 }
 
 // SetAssetEnabled sets the enabled state of an asset by ID.
@@ -198,7 +199,7 @@ func SetAssetEnabled(id string, enabled bool) (*AssetConfig, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("asset %q not found in config", id)
 }
 
 // SetAssetInstalled sets the installed state of an asset by ID.
@@ -218,7 +219,7 @@ func SetAssetInstalled(id string, installed bool) (*AssetConfig, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("asset %q not found in config", id)
 }
 
 // GetEnabledAssets returns all enabled asset entries.

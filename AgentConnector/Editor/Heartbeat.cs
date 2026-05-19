@@ -17,10 +17,13 @@ namespace HeraAgent
         static double s_LastWrite;
         const double INTERVAL = 0.5;
         const double COMPILE_START_TIMEOUT = 30.0; // hard cap awaiting compile-start after request
+        const double FORCE_REWRITE_INTERVAL = 5.0; // re-write at least this often even if content unchanged (staleness probe)
         static string s_ForcedState;
         static double s_CompileRequestTime;
         static bool s_SawCompileStart;
         static string s_FilePath;
+        static string s_LastJson;
+        static double s_LastForcedWrite;
 
         static Heartbeat()
         {
@@ -116,23 +119,48 @@ namespace HeraAgent
                 compileErrors = EditorUtility.scriptCompilationFailed,
             };
 
+            var json = JsonConvert.SerializeObject(status);
+
+            // Skip disk I/O when the serialized payload (minus timestamp drift)
+            // matches the last write. timestamp is part of the JSON so the cheap
+            // compare here only kicks in for the forced-rewrite path below; the
+            // primary win is staying off the disk during idle reload cycles.
+            var now = EditorApplication.timeSinceStartup;
+            var jsonForCompare = StripTimestamp(json);
+            var stateUnchanged = jsonForCompare == s_LastJson;
+            var forceWrite = now - s_LastForcedWrite >= FORCE_REWRITE_INTERVAL;
+            if (stateUnchanged && !forceWrite) return;
+
             try
             {
                 Directory.CreateDirectory(s_Dir);
                 var path = GetFilePath();
                 var tmp = path + ".tmp";
-                File.WriteAllText(tmp, JsonConvert.SerializeObject(status));
+                File.WriteAllText(tmp, json);
                 // Atomic replace: a concurrent reader either sees the full prior
                 // file or the full new one, never a partial JSON document.
                 if (File.Exists(path))
                     File.Replace(tmp, path, null);
                 else
                     File.Move(tmp, path);
+                s_LastJson = jsonForCompare;
+                s_LastForcedWrite = now;
             }
             catch (Exception ex)
             {
                 UnityEngine.Debug.LogError($"[Hera] Heartbeat write failed: {ex.Message}");
             }
+        }
+
+        private static string StripTimestamp(string json)
+        {
+            // crude but cheap: nuke the timestamp field for content comparison
+            var idx = json.IndexOf("\"timestamp\":", StringComparison.Ordinal);
+            if (idx < 0) return json;
+            var end = json.IndexOf(',', idx);
+            if (end < 0) end = json.IndexOf('}', idx);
+            if (end < 0) return json;
+            return json.Substring(0, idx) + json.Substring(end);
         }
 
         static string GetState()

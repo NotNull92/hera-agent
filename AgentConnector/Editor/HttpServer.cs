@@ -160,10 +160,10 @@ namespace HeraAgent
         static void ProcessQueue()
         {
             while (s_Queue.TryDequeue(out var item))
-                ProcessItem(item);
+                _ = ProcessItem(item);
         }
 
-        static async void ProcessItem(WorkItem item)
+        static async Task ProcessItem(WorkItem item)
         {
             try
             {
