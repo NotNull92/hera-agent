@@ -444,6 +444,11 @@ namespace HeraAgent.Tools
 
         private static object Serialize(object obj, int depth)
         {
+            return Serialize(obj, depth, new HashSet<object>(ReferenceEqualityComparer.Instance));
+        }
+
+        private static object Serialize(object obj, int depth, HashSet<object> visited)
+        {
             if (obj == null) return null;
             if (depth > DefaultSerializeDepth) return obj.ToString();
             var type = obj.GetType();
@@ -454,7 +459,7 @@ namespace HeraAgent.Tools
             {
                 var r = new Dictionary<string, object>();
                 foreach (DictionaryEntry e in dict)
-                    r[e.Key.ToString()] = Serialize(e.Value, depth + 1);
+                    r[e.Key.ToString()] = Serialize(e.Value, depth + 1, visited);
                 return r;
             }
 
@@ -470,28 +475,38 @@ namespace HeraAgent.Tools
                 foreach (var item in enumerable)
                 {
                     if (count++ >= 100) { list.Add("... (truncated at 100)"); break; }
-                    list.Add(Serialize(item, depth + 1));
+                    list.Add(Serialize(item, depth + 1, visited));
                 }
                 return list;
             }
 
             if (type.IsValueType || type.IsClass)
             {
+                // Reference-equality cycle guard for class instances. Value types are
+                // copied so they cannot form a real cycle — only class refs are tracked.
+                if (!type.IsValueType)
+                {
+                    if (visited.Contains(obj)) return $"<cycle: {type.Name}>";
+                    visited.Add(obj);
+                }
+
                 var r = new Dictionary<string, object>();
                 foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if (f.FieldType == type) continue; // skip self-typed (cycle guard)
-                    try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1); }
+                    if (f.FieldType == type) continue;
+                    if (f.GetCustomAttribute<ObsoleteAttribute>() != null) continue;
+                    try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1, visited); }
                     catch (Exception ex) { r[f.Name] = $"<error: {ex.GetType().Name}>"; }
                 }
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if (!prop.CanRead) continue;
                     if (prop.GetIndexParameters().Length > 0) continue;
-                    // Self-typed properties (Vector3.normalized → Vector3,
-                    // Transform.parent → Transform) cause runaway response sizes.
                     if (prop.PropertyType == type) continue;
-                    try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1); }
+                    // Obsolete shortcut accessors (Component.audio, .camera, .rigidbody, ...)
+                    // throw NotSupportedException at runtime and would spam responses.
+                    if (prop.GetCustomAttribute<ObsoleteAttribute>() != null) continue;
+                    try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1, visited); }
                     catch (Exception ex)
                     {
                         var inner = ex is TargetInvocationException tie ? tie.InnerException ?? tie : ex;
@@ -501,6 +516,13 @@ namespace HeraAgent.Tools
                 if (r.Count > 0) return r;
             }
             return obj.ToString();
+        }
+
+        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+        {
+            public static readonly ReferenceEqualityComparer Instance = new ReferenceEqualityComparer();
+            public new bool Equals(object x, object y) => ReferenceEquals(x, y);
+            public int GetHashCode(object obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
         }
     }
 }
