@@ -79,10 +79,12 @@ func Execute() error {
 		statusErr := statusCmd(inst)
 		printUpdateNotice()
 		return statusErr
+	case "ping":
+		return pingCmd(flagProject, flagPort)
 	case "asset-config":
 		return assetConfigCmd(subArgs)
 	case "doctor":
-		return doctorCmd()
+		return doctorCmd(subArgs)
 	}
 
 	inst, err := client.DiscoverInstance(flagProject, flagPort)
@@ -510,10 +512,12 @@ Custom Tools:
 
 Status:
   status                        Show Unity Editor state (ready, compiling, etc.)
+  ping                          Token-cheap liveness probe (heartbeat read only, no HTTP)
 
 Diagnostics:
   doctor                        Self-check: binary path, PATH resolution,
                                 duplicate installs, shell hints, Unity instances
+  doctor --json                 Same data, JSON envelope for agent parsing
 
 Update:
   update                        Update to the latest version
@@ -770,6 +774,21 @@ Examples:
   hera-agent list --names
   hera-agent list --tool exec
 `)
+	case "ping":
+		fmt.Print(`Usage: hera-agent ping
+
+Token-cheap liveness probe. Reads the heartbeat file only — no Unity HTTP
+round-trip and no instance discovery beyond filesystem scan.
+
+Output: single line, e.g. "port=8090 alive=1 state=ready age_ms=42".
+Exit code: 0 when alive within 3s; 1 otherwise.
+
+Use 'status' for the richer human-readable view.
+
+Examples:
+  hera-agent ping
+  hera-agent ping --port 8090
+`)
 	case "status":
 		fmt.Print(`Usage: hera-agent status
 
@@ -789,8 +808,12 @@ Unity instances visible to the Connector.
 Does NOT require Unity to be running. Use this first when 'hera-agent' is
 not found, points at the wrong copy, or can't see your Unity Editor.
 
-Example:
+Options:
+  --json   Emit structured envelope (binary, shell, unity) for agents.
+
+Examples:
   hera-agent doctor
+  hera-agent doctor --json
 
 Environment:
   HERA_AGENT_NO_PATH_CHECK=1   Silence the implicit per-command PATH warning.

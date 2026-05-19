@@ -46,6 +46,30 @@ func statusCmd(inst *client.Instance) error {
 	return nil
 }
 
+// pingCmd is a token-cheap liveness probe for agents. Reads the instance
+// heartbeat file directly (no Unity HTTP round-trip), prints a single
+// machine-parseable line, exits 0 if alive within 3s otherwise 1.
+func pingCmd(project string, port int) error {
+	inst, err := discoverStatusInstance(project, port)
+	if err != nil {
+		fmt.Println("alive=0")
+		os.Exit(1)
+		return nil
+	}
+	age := time.Since(time.UnixMilli(inst.Timestamp))
+	alive := age <= 3*time.Second && inst.State != "stopped"
+	flag := 0
+	if alive {
+		flag = 1
+	}
+	fmt.Printf("port=%d alive=%d state=%s age_ms=%d\n",
+		inst.Port, flag, inst.State, age.Milliseconds())
+	if !alive {
+		os.Exit(1)
+	}
+	return nil
+}
+
 func discoverStatusInstance(project string, port int) (*client.Instance, error) {
 	if port > 0 {
 		return client.FindByPort(port)

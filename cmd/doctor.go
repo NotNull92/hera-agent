@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,7 +18,20 @@ import (
 // Intended as the first thing users (and AI agents) try when hera-agent
 // "isn't working" — it answers "where is the binary, what does PATH see,
 // and is Unity reachable?" without requiring a Unity connection.
-func doctorCmd() error {
+func doctorCmd(args []string) error {
+	jsonMode := false
+	for _, a := range args {
+		if a == "--json" {
+			jsonMode = true
+		}
+	}
+	if jsonMode {
+		return doctorJSON()
+	}
+	return doctorText()
+}
+
+func doctorText() error {
 	fmt.Println("hera-agent doctor")
 	fmt.Println("=================")
 	fmt.Printf("Version:   %s\n", Version)
@@ -89,6 +103,81 @@ func doctorCmd() error {
 	fmt.Println()
 	fmt.Println("See docs/troubleshooting.md for known issues.")
 	return nil
+}
+
+// doctorJSON emits the same diagnostic data as the text view but as a
+// structured envelope agents can parse and act on (e.g. self-repair when
+// PATH is wrong, or instruct the user to reinstall when canonical binary
+// is missing).
+func doctorJSON() error {
+	report := map[string]interface{}{
+		"version":   Version,
+		"os":        runtime.GOOS,
+		"arch":      runtime.GOARCH,
+		"binary":    collectBinaryInfo(),
+		"shell":     map[string]string{"os": runtime.GOOS},
+		"unity":     collectUnityInstances(),
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	out, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(out))
+	return nil
+}
+
+func collectBinaryInfo() map[string]interface{} {
+	info := map[string]interface{}{}
+	exe, exeErr := os.Executable()
+	if exeErr != nil {
+		info["running_error"] = exeErr.Error()
+	} else {
+		info["running"] = exe
+	}
+	resolved, lookErr := exec.LookPath("hera-agent")
+	if lookErr != nil {
+		info["path_lookup_error"] = lookErr.Error()
+	} else {
+		info["on_path"] = resolved
+		if exeErr == nil {
+			info["path_matches_running"] = sameFile(resolveSymlink(exe), resolveSymlink(resolved))
+		}
+	}
+	if dupes := findDuplicates("hera-agent"); len(dupes) > 1 {
+		info["duplicates"] = dupes
+	}
+	_, installBin := getInstallPaths()
+	info["canonical"] = installBin
+	if _, err := os.Stat(installBin); err != nil {
+		info["canonical_missing"] = true
+	}
+	return info
+}
+
+func collectUnityInstances() map[string]interface{} {
+	out := map[string]interface{}{}
+	instances, err := client.ScanInstances()
+	if err != nil {
+		out["scan_error"] = err.Error()
+		return out
+	}
+	out["count"] = len(instances)
+	list := make([]map[string]interface{}, 0, len(instances))
+	for _, inst := range instances {
+		age := time.Since(time.UnixMilli(inst.Timestamp))
+		list = append(list, map[string]interface{}{
+			"port":         inst.Port,
+			"pid":          inst.PID,
+			"state":        inst.State,
+			"project":      inst.ProjectPath,
+			"unityVersion": inst.UnityVersion,
+			"age_ms":       age.Milliseconds(),
+			"stale":        age > 3*time.Second,
+		})
+	}
+	out["instances"] = list
+	return out
 }
 
 // findDuplicates walks PATH and returns every directory that contains a

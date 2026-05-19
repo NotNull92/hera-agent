@@ -66,6 +66,9 @@ namespace HeraAgent.Tools
 
             [ToolParameter("Clear console")]
             public bool Clear { get; set; }
+
+            [ToolParameter("Return only entries with index >= since. Use last_cursor from prior response.")]
+            public int Since { get; set; }
         }
 
         public static object HandleCommand(JObject @params)
@@ -73,7 +76,20 @@ namespace HeraAgent.Tools
             if (_startGettingEntriesMethod == null || _endGettingEntriesMethod == null ||
                 _clearMethod == null || _getCountMethod == null || _getEntryMethod == null ||
                 _modeField == null || _messageField == null || _logEntryType == null)
-                return new ErrorResponse("ReadConsole failed to initialize (reflection error).");
+            {
+                var missing = new List<string>();
+                if (_startGettingEntriesMethod == null) missing.Add("LogEntries.StartGettingEntries");
+                if (_endGettingEntriesMethod == null) missing.Add("LogEntries.EndGettingEntries");
+                if (_clearMethod == null) missing.Add("LogEntries.Clear");
+                if (_getCountMethod == null) missing.Add("LogEntries.GetCount");
+                if (_getEntryMethod == null) missing.Add("LogEntries.GetEntryInternal");
+                if (_modeField == null) missing.Add("LogEntry.mode");
+                if (_messageField == null) missing.Add("LogEntry.message");
+                if (_logEntryType == null) missing.Add("LogEntry (type)");
+                return new ErrorResponse("READCONSOLE_INIT_FAILED",
+                    "ReadConsole failed to initialize (reflection error).",
+                    data: new { missing_members = missing, unity_version = Application.unityVersion });
+            }
 
             if (@params == null)
                 return new ErrorResponse("Parameters cannot be null.");
@@ -92,20 +108,25 @@ namespace HeraAgent.Tools
 
             int? count = p.GetInt("lines") ?? p.GetInt("count");
             string stacktrace = p.Get("stacktrace", "user").ToLower();
+            int since = p.GetInt("since") ?? 0;
 
-            return GetEntries(types, count, stacktrace);
+            return GetEntries(types, count, stacktrace, since);
         }
 
-        private static object GetEntries(List<string> types, int? count, string stacktrace)
+        private static object GetEntries(List<string> types, int? count, string stacktrace, int since)
         {
             var entries = new List<string>();
+            int total = 0;
+            int filteredTotal = 0;
+            int lastIndex = since;
+            bool truncated = false;
             try
             {
                 _startGettingEntriesMethod.Invoke(null, null);
-                int total = (int)_getCountMethod.Invoke(null, null);
+                total = (int)_getCountMethod.Invoke(null, null);
                 object logEntry = Activator.CreateInstance(_logEntryType);
 
-                for (int i = 0; i < total; i++)
+                for (int i = since; i < total; i++)
                 {
                     _getEntryMethod.Invoke(null, new object[] { i, logEntry });
                     int mode = (int)_modeField.GetValue(logEntry);
@@ -119,9 +140,15 @@ namespace HeraAgent.Tools
 
                     if (!want) continue;
 
-                    entries.Add(FormatMessage(message, stacktrace));
+                    filteredTotal++;
+                    if (count.HasValue && entries.Count >= count.Value)
+                    {
+                        truncated = true;
+                        continue;
+                    }
 
-                    if (count.HasValue && entries.Count >= count.Value) break;
+                    entries.Add(FormatMessage(message, stacktrace));
+                    lastIndex = i + 1; // cursor advances past the last returned entry
                 }
             }
             finally
@@ -129,7 +156,16 @@ namespace HeraAgent.Tools
                 try { _endGettingEntriesMethod.Invoke(null, null); } catch { }
             }
 
-            return new SuccessResponse($"Retrieved {entries.Count} entries.", entries);
+            return new SuccessResponse($"Retrieved {entries.Count} entries.", new
+            {
+                entries,
+                total_in_console = total,
+                matched = filteredTotal,
+                returned = entries.Count,
+                since,
+                last_cursor = lastIndex,
+                truncated,
+            });
         }
 
         private static string FormatMessage(string message, string mode)

@@ -48,6 +48,9 @@ namespace HeraAgent.Tools
 
             [ToolParameter("Skip compile/assembly cache. Forces a fresh csc invocation.")]
             public bool NoCache { get; set; }
+
+            [ToolParameter("Max object graph depth in serialized return value (default 3, max 8).")]
+            public int Depth { get; set; }
         }
 
         public static object HandleCommand(JObject parameters)
@@ -72,8 +75,18 @@ namespace HeraAgent.Tools
             var cscOverride = p.Get("csc");
             var dotnetOverride = p.Get("dotnet");
             var noCache = p.GetBool("no_cache") || p.GetBool("nocache") || p.GetBool("no-cache");
+            var depth = ClampDepth(p.GetInt("depth") ?? 0);
 
-            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache);
+            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth);
+        }
+
+        private const int DefaultSerializeDepth = 3;
+        private const int MaxSerializeDepth = 8;
+
+        private static int ClampDepth(int requested)
+        {
+            if (requested <= 0) return DefaultSerializeDepth;
+            return requested > MaxSerializeDepth ? MaxSerializeDepth : requested;
         }
 
         private static string BuildSource(string code, List<string> extraUsings)
@@ -93,7 +106,7 @@ namespace HeraAgent.Tools
             return sb.ToString();
         }
 
-        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache)
+        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth)
         {
             var timings = new Dictionary<string, long>();
             string cacheKey;
@@ -185,7 +198,7 @@ namespace HeraAgent.Tools
             }
 
             timings["cache"] = cacheState;
-            var result = Invoke(compiled, timings);
+            var result = Invoke(compiled, timings, depth);
             ResponseTimings.Merge(result, timings);
 
             // For --no-cache we own the ALC and must unload it. Serialize already
@@ -376,7 +389,7 @@ namespace HeraAgent.Tools
             return new LoadedAssembly { Assembly = Assembly.Load(bytes), LoadContext = null };
         }
 
-        private static object Invoke(Assembly compiled, Dictionary<string, long> timings)
+        private static object Invoke(Assembly compiled, Dictionary<string, long> timings, int depth)
         {
             var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
             if (method == null)
@@ -406,7 +419,8 @@ namespace HeraAgent.Tools
             timings["execute_ms"] = execSw.ElapsedMilliseconds;
 
             var serSw = Stopwatch.StartNew();
-            var serialized = Serialize(result, 0);
+            var serialized = Serialize(result, 0, depth,
+                new HashSet<object>(ReferenceEqualityComparer.Instance));
             serSw.Stop();
             timings["serialize_ms"] = serSw.ElapsedMilliseconds;
             return new SuccessResponse("OK", serialized);
@@ -452,17 +466,10 @@ namespace HeraAgent.Tools
             return parsed;
         }
 
-        private const int DefaultSerializeDepth = 3;
-
-        private static object Serialize(object obj, int depth)
-        {
-            return Serialize(obj, depth, new HashSet<object>(ReferenceEqualityComparer.Instance));
-        }
-
-        private static object Serialize(object obj, int depth, HashSet<object> visited)
+        private static object Serialize(object obj, int depth, int maxDepth, HashSet<object> visited)
         {
             if (obj == null) return null;
-            if (depth > DefaultSerializeDepth) return obj.ToString();
+            if (depth > maxDepth) return obj.ToString();
             var type = obj.GetType();
             if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal)) return obj;
             if (type.IsEnum) return obj.ToString();
@@ -471,7 +478,7 @@ namespace HeraAgent.Tools
             {
                 var r = new Dictionary<string, object>();
                 foreach (DictionaryEntry e in dict)
-                    r[e.Key.ToString()] = Serialize(e.Value, depth + 1, visited);
+                    r[e.Key.ToString()] = Serialize(e.Value, depth + 1, maxDepth, visited);
                 return r;
             }
 
@@ -482,12 +489,24 @@ namespace HeraAgent.Tools
             var isUnityObject = obj is UnityEngine.Object;
             if (!isUnityObject && obj is IEnumerable enumerable)
             {
+                const int limit = 100;
                 var list = new List<object>();
                 int count = 0;
+                bool truncated = false;
                 foreach (var item in enumerable)
                 {
-                    if (count++ >= 100) { list.Add("... (truncated at 100)"); break; }
-                    list.Add(Serialize(item, depth + 1, visited));
+                    if (count >= limit) { truncated = true; break; }
+                    list.Add(Serialize(item, depth + 1, maxDepth, visited));
+                    count++;
+                }
+                if (truncated)
+                {
+                    list.Add(new Dictionary<string, object>
+                    {
+                        ["__truncated"] = true,
+                        ["returned"] = limit,
+                        ["hint"] = $"output capped at {limit} items — filter at source or paginate"
+                    });
                 }
                 return list;
             }
@@ -507,7 +526,7 @@ namespace HeraAgent.Tools
                 {
                     if (f.FieldType == type) continue;
                     if (f.GetCustomAttribute<ObsoleteAttribute>() != null) continue;
-                    try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1, visited); }
+                    try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1, maxDepth, visited); }
                     catch (Exception ex) { r[f.Name] = $"<error: {ex.GetType().Name}>"; }
                 }
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -518,7 +537,7 @@ namespace HeraAgent.Tools
                     // Obsolete shortcut accessors (Component.audio, .camera, .rigidbody, ...)
                     // throw NotSupportedException at runtime and would spam responses.
                     if (prop.GetCustomAttribute<ObsoleteAttribute>() != null) continue;
-                    try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1, visited); }
+                    try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1, maxDepth, visited); }
                     catch (Exception ex)
                     {
                         var inner = ex is TargetInvocationException tie ? tie.InnerException ?? tie : ex;

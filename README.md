@@ -151,8 +151,9 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | Command | What it does |
 |---------|-------------|
 | `editor` | Play, stop, pause, refresh |
-| `exec` | Run arbitrary C# inside Unity (`--file <path>` for long code) |
+| `exec` | Run arbitrary C# inside Unity (`--file <path>` for long code, `--depth N` to scope response) |
 | `log` | Write to Unity console without csc compile cost |
+| `ping` | Token-cheap liveness probe (heartbeat read only, no HTTP) |
 | `scene` | Info, load, save, list, close |
 | `console` | Read, filter, clear logs |
 | `test` | Run EditMode / PlayMode tests |
@@ -162,7 +163,7 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | `reserialize` | Fix YAML after text edits |
 | `list` | Slim default; `--names` / `--tool <name>` for token-efficient introspection |
 | `status` | Connection & project info |
-| `doctor` | Self-diagnose PATH, installs, shell, Unity reachability |
+| `doctor` | Self-diagnose PATH, installs, shell, Unity reachability (`--json` for agents) |
 | `asset-config` | Toggle optional asset integrations (TUI / list / enable / disable / detect / `--json`) |
 | `update` | Self-update the binary |
 | `uninstall` | Remove the CLI from PATH |
