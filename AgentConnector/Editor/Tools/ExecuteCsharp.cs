@@ -440,10 +440,12 @@ namespace HeraAgent.Tools
             return parsed;
         }
 
+        private const int DefaultSerializeDepth = 3;
+
         private static object Serialize(object obj, int depth)
         {
             if (obj == null) return null;
-            if (depth > 4) return obj.ToString();
+            if (depth > DefaultSerializeDepth) return obj.ToString();
             var type = obj.GetType();
             if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal)) return obj;
             if (type.IsEnum) return obj.ToString();
@@ -455,7 +457,13 @@ namespace HeraAgent.Tools
                     r[e.Key.ToString()] = Serialize(e.Value, depth + 1);
                 return r;
             }
-            if (obj is IEnumerable enumerable)
+
+            // Unity Objects (Component, ScriptableObject, etc.) implement IEnumerable
+            // for children iteration on some subtypes. Serialize as object first so
+            // properties (Transform.position, Scene.name, ...) survive instead of
+            // returning an empty children list.
+            var isUnityObject = obj is UnityEngine.Object;
+            if (!isUnityObject && obj is IEnumerable enumerable)
             {
                 var list = new List<object>();
                 int count = 0;
@@ -466,11 +474,13 @@ namespace HeraAgent.Tools
                 }
                 return list;
             }
+
             if (type.IsValueType || type.IsClass)
             {
                 var r = new Dictionary<string, object>();
                 foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
+                    if (f.FieldType == type) continue; // skip self-typed (cycle guard)
                     try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1); }
                     catch (Exception ex) { r[f.Name] = $"<error: {ex.GetType().Name}>"; }
                 }
@@ -478,6 +488,9 @@ namespace HeraAgent.Tools
                 {
                     if (!prop.CanRead) continue;
                     if (prop.GetIndexParameters().Length > 0) continue;
+                    // Self-typed properties (Vector3.normalized → Vector3,
+                    // Transform.parent → Transform) cause runaway response sizes.
+                    if (prop.PropertyType == type) continue;
                     try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1); }
                     catch (Exception ex)
                     {

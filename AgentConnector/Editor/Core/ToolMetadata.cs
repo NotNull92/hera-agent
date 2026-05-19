@@ -20,9 +20,11 @@ namespace HeraAgent
         public string OutputSchema { get; set; }
         public JObject Schema { get; set; }
 
-        public ToolParameterMetadata(ToolParameterAttribute attr, Type propertyType)
+        public ToolParameterMetadata(ToolParameterAttribute attr, Type propertyType, string propertyName)
         {
-            Name = attr.Name;
+            Name = string.IsNullOrEmpty(attr.Name)
+                ? StringCaseUtility.ToSnakeCase(propertyName)
+                : attr.Name;
             Description = attr.Description;
             Required = attr.Required;
             DefaultValue = attr.DefaultValue;
@@ -148,11 +150,13 @@ namespace HeraAgent
             Groups = toolAttr?.Groups ?? Array.Empty<string>();
             Enabled = toolAttr?.Enabled ?? true;
 
-            var parameters = toolType.GetProperties()
+            var paramsType = toolType.GetNestedType("Parameters") ?? toolType;
+            var parameters = paramsType.GetProperties()
                 .Where(p => p.GetCustomAttributes(typeof(ToolParameterAttribute), false).Length > 0)
                 .Select(p => new ToolParameterMetadata(
                     p.GetCustomAttributes(typeof(ToolParameterAttribute), false).First() as ToolParameterAttribute,
-                    p.PropertyType))
+                    p.PropertyType,
+                    p.Name))
                 .ToList();
 
             Parameters = parameters;
