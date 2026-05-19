@@ -84,10 +84,10 @@ func assetConfigList() error {
 	}
 
 	categoryNames := map[string]string{
-		"inspector":     "인스펙터",
-		"validation":    "검증",
-		"serialization": "직렬화",
-		"animation":     "애니메이션/연출",
+		"inspector":     "Inspector",
+		"validation":    "Validation",
+		"serialization": "Serialization",
+		"animation":     "Animation",
 	}
 
 	categorized := make(map[string][]assetconfig.AssetEntry)
@@ -205,8 +205,8 @@ func assetConfigDetect() error {
 	// This command shows instructions for asset detection.
 	// The actual detection requires Unity running with the Connector package.
 	if tui.ColorEnabled() {
-		fmt.Println(tui.InfoStyle.Render("에셋 감지를 실행하려면 Unity가 실행 중이어야 합니다."))
-		fmt.Println(tui.InfoStyle.Render("Unity 실행 후 아래 명령으로 감지:"))
+		fmt.Println(tui.InfoStyle.Render("Asset detection requires Unity to be running."))
+		fmt.Println(tui.InfoStyle.Render("With Unity open, run:"))
 		fmt.Println("  " + tui.PathStyle.Render("hera-agent asset-config detect"))
 		fmt.Println()
 		fmt.Printf("%s %s\n",
@@ -215,8 +215,8 @@ func assetConfigDetect() error {
 		return nil
 	}
 
-	fmt.Println("에셋 감지를 실행하려면 Unity가 실행 중이어야 합니다.")
-	fmt.Println("Unity 실행 후 아래 명령으로 감지:")
+	fmt.Println("Asset detection requires Unity to be running.")
+	fmt.Println("With Unity open, run:")
 	fmt.Println("  hera-agent asset-config detect")
 	fmt.Println()
 	fmt.Printf("Config path: %s\n", assetconfig.ConfigFilePath())
@@ -237,16 +237,16 @@ func printAssetConfigHelp() {
 	fmt.Print(`Usage: hera-agent asset-config [subcommand]
 
 Interactive TUI:
-  asset-config                  대화형 체크박스 UI 실행 (Space로 토글)
+  asset-config                  Launch interactive checkbox UI (Space to toggle)
 
 Subcommands:
-  list, ls                      전체 에셋 목록 + 상태 출력
-  enable <id>                   에셋 활성화
-  disable <id>                  에셋 비활성화
-  toggle <id>                   에셋 토글 (ON/OFF 반전)
-  detect                        설치된 에셋 자동 감지 (Unity 필요)
-  get <id>                      특정 에셋 상태 확인
-  path                          설정 파일 경로 출력
+  list, ls                      List all assets and their state
+  enable <id>                   Enable an asset
+  disable <id>                  Disable an asset
+  toggle <id>                   Toggle an asset (flip ON/OFF)
+  detect                        Auto-detect installed assets (requires Unity)
+  get <id>                      Show a single asset's state
+  path                          Print the config file path
 
 Available Assets:
   odin_inspector                Odin Inspector
@@ -262,10 +262,10 @@ Examples:
   hera-agent asset-config toggle odin_inspector
 
 TUI Controls:
-  ↑/k       위로 이동
-  ↓/j       아래로 이동
-  Space/Enter 토글 (ON/OFF)
-  q/Esc     나가기 (변경사항 자동 저장)
+  ↑/k          Move up
+  ↓/j          Move down
+  Space/Enter  Toggle (ON/OFF)
+  q/Esc        Quit (changes auto-saved)
 `)
 }
 

@@ -77,19 +77,19 @@ type keyMap struct {
 var keys = keyMap{
 	Up: key.NewBinding(
 		key.WithKeys("up", "k"),
-		key.WithHelp("↑/k", "위로"),
+		key.WithHelp("↑/k", "up"),
 	),
 	Down: key.NewBinding(
 		key.WithKeys("down", "j"),
-		key.WithHelp("↓/j", "아래로"),
+		key.WithHelp("↓/j", "down"),
 	),
 	Toggle: key.NewBinding(
 		key.WithKeys(" ", "enter"),
-		key.WithHelp("Space/Enter", "토글"),
+		key.WithHelp("Space/Enter", "toggle"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("q", "esc", "ctrl+c"),
-		key.WithHelp("q/Esc", "나가기"),
+		key.WithHelp("q/Esc", "quit"),
 	),
 }
 
@@ -141,7 +141,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keys.Quit):
 			if m.cursor == len(m.assets) {
-				// On "나가기" item — quit immediately
+				// On the "Quit" item — quit immediately
 				m.quitting = true
 				return m, tea.Quit
 			}
@@ -169,7 +169,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.assets[m.cursor].Enabled = !m.assets[m.cursor].Enabled
 				m.changed = true
 			} else {
-				// "나가기" selected — save and quit
+				// "Quit" selected — save and quit
 				if m.changed {
 					cfg := &assetconfig.AssetConfig{
 						Version: "1.0.0",
@@ -191,9 +191,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	if m.quitting {
 		if m.changed {
-			return "✓ Asset Config 저장 완료\n"
+			return "✓ Asset Config saved\n"
 		}
-		return "Asset Config 종료\n"
+		return "Asset Config closed\n"
 	}
 
 	content := m.renderContent()
@@ -214,10 +214,10 @@ func (m model) renderContent() string {
 
 	// Group assets by category
 	categoryNames := map[string]string{
-		"inspector":     "인스펙터 (Inspector)",
-		"validation":    "검증 (Validation)",
-		"serialization": "직렬화 (Serialization)",
-		"animation":     "애니메이션/연출 (Animation)",
+		"inspector":     "Inspector",
+		"validation":    "Validation",
+		"serialization": "Serialization",
+		"animation":     "Animation",
 	}
 
 	// Track which items belong to which category for cursor mapping
@@ -251,15 +251,15 @@ func (m model) renderContent() string {
 		}
 	}
 
-	// "나가기" item
+	// "Quit" item
 	if m.cursor == len(m.assets) {
-		b.WriteString(cursorStyle.Render("▸ ") + quitStyle.Render("[ 나가기 ]"))
+		b.WriteString(cursorStyle.Render("▸ ") + quitStyle.Render("[ Quit ]"))
 	} else {
-		b.WriteString("  " + quitStyle.Render("  나가기  "))
+		b.WriteString("  " + quitStyle.Render("  Quit  "))
 	}
 
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  ↑↓ 이동  │  Space 토글  │  q/Esc 나가기"))
+	b.WriteString(helpStyle.Render("  ↑↓ move  │  Space toggle  │  q/Esc quit"))
 
 	return b.String()
 }
@@ -276,9 +276,9 @@ func (m model) renderItem(globalIdx int, asset assetconfig.AssetEntry, isSelecte
 	// Installed badge
 	var installedBadge string
 	if asset.Installed {
-		installedBadge = installedStyle.Render(" ✓설치됨")
+		installedBadge = installedStyle.Render(" ✓installed")
 	} else {
-		installedBadge = notInstalledStyle.Render(" 미설치")
+		installedBadge = notInstalledStyle.Render(" not installed")
 	}
 
 	// Name
