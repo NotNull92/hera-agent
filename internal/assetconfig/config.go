@@ -133,16 +133,34 @@ func Load() (*AssetConfig, error) {
 		return nil, err
 	}
 
-	// Merge with defaults — add any new assets that exist in defaults but not in file
-	existing := make(map[string]bool)
+	// Merge with defaults. User state (Enabled, Installed) is preserved per ID.
+	// Immutable metadata (Name, Description, Category, DocURL, ReferencePath)
+	// is refreshed from defaults so existing configs pick up upstream changes
+	// (e.g. translated copy) without needing the user to delete the file.
+	defaults := DefaultAssets()
+	byID := make(map[string]AssetEntry, len(cfg.Assets))
 	for _, a := range cfg.Assets {
-		existing[a.ID] = true
+		byID[a.ID] = a
 	}
-	for _, def := range DefaultAssets() {
-		if !existing[def.ID] {
-			cfg.Assets = append(cfg.Assets, def)
+	merged := make([]AssetEntry, 0, len(defaults))
+	for _, def := range defaults {
+		if prev, ok := byID[def.ID]; ok {
+			def.Enabled = prev.Enabled
+			def.Installed = prev.Installed
+		}
+		merged = append(merged, def)
+	}
+	// Preserve any user-added assets that aren't in defaults.
+	seen := make(map[string]bool, len(defaults))
+	for _, def := range defaults {
+		seen[def.ID] = true
+	}
+	for _, a := range cfg.Assets {
+		if !seen[a.ID] {
+			merged = append(merged, a)
 		}
 	}
+	cfg.Assets = merged
 
 	return &cfg, nil
 }
