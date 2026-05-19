@@ -63,11 +63,77 @@ namespace HeraAgent
             return found;
         }
 
+        /// <summary>
+        /// Slim default for agent consumers: name, description, schema only.
+        /// Token-cost of `list` was ~90% redundancy across parameters/schema/metadata.
+        /// For full per-tool detail use GetToolSchema(name).
+        /// </summary>
         public static List<object> GetToolSchemas()
         {
             var tools = new List<object>();
-            var nameToType = new Dictionary<string, Type>();
+            foreach (var (name, type, attr) in EnumerateTools())
+            {
+                var paramsType = type.GetNestedType("Parameters");
+                tools.Add(new
+                {
+                    name,
+                    description = attr.Description ?? "",
+                    schema = GetToolMetadata(type)?.ParametersSchema
+                        ?? GetLegacyParameterSchema(paramsType),
+                });
+            }
+            return tools;
+        }
 
+        /// <summary>
+        /// Names-only listing — one entry per tool. Use when an agent just needs
+        /// to know what's available before picking one to introspect.
+        /// </summary>
+        public static List<object> GetToolNames()
+        {
+            var tools = new List<object>();
+            foreach (var (name, _, attr) in EnumerateTools())
+            {
+                tools.Add(new { name, description = attr.Description ?? "" });
+            }
+            return tools;
+        }
+
+        /// <summary>
+        /// Full schema for a single tool — returned by `list --tool &lt;name&gt;`.
+        /// Includes parameters schema, output schema, and metadata. Null if not found.
+        /// </summary>
+        public static object GetToolSchema(string toolName)
+        {
+            foreach (var (name, type, attr) in EnumerateTools())
+            {
+                if (name != toolName) continue;
+                var paramsType = type.GetNestedType("Parameters");
+                return new
+                {
+                    name,
+                    description = attr.Description ?? "",
+                    group = attr.Group ?? "",
+                    groups = attr.Groups ?? new string[0],
+                    schema = GetToolMetadata(type)?.ParametersSchema
+                        ?? GetLegacyParameterSchema(paramsType),
+                    output_schema = GetToolMetadata(type)?.OutputSchema
+                        ?? GetDefaultOutputSchema(),
+                    metadata = new
+                    {
+                        enum_support = HasEnumSupport(paramsType),
+                        default_support = HasDefaultSupport(paramsType),
+                        output_schema_support = HasOutputSchemaSupport(paramsType),
+                        custom_types = GetCustomTypes(paramsType),
+                    },
+                };
+            }
+            return null;
+        }
+
+        private static IEnumerable<(string name, Type type, HeraToolAttribute attr)> EnumerateTools()
+        {
+            var seen = new Dictionary<string, Type>();
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] types;
@@ -76,14 +142,13 @@ namespace HeraAgent
 
                 foreach (var type in types)
                 {
-                    if (type.IsClass == false) continue;
+                    if (!type.IsClass) continue;
                     var attr = type.GetCustomAttribute<HeraToolAttribute>();
                     if (attr == null) continue;
-                    if (!attr.Enabled) continue; // Skip disabled tools
+                    if (!attr.Enabled) continue;
 
                     var name = attr.Name ?? StringCaseUtility.ToSnakeCase(type.Name);
-
-                    if (nameToType.TryGetValue(name, out var existing))
+                    if (seen.TryGetValue(name, out var existing))
                     {
                         UnityEngine.Debug.LogError(
                             $"[Hera] Duplicate tool name '{name}': " +
@@ -91,35 +156,10 @@ namespace HeraAgent
                             $"Rename one or remove the duplicate.");
                         continue;
                     }
-                    nameToType[name] = type;
-
-                    var paramsType = type.GetNestedType("Parameters");
-
-                    tools.Add(new
-                    {
-                        name,
-                        description = attr.Description ?? "",
-                        group = attr.Group ?? "",
-                        groups = attr.Groups ?? new string[0],
-                        enabled = attr.Enabled,
-                        parameters = GetParameterSchema(paramsType),
-                        // Add new schema support
-                        schema = GetToolMetadata(type)?
-                            .ParametersSchema ?? GetLegacyParameterSchema(paramsType),
-                        output_schema = GetToolMetadata(type)?
-                            .OutputSchema ?? GetDefaultOutputSchema(),
-                        metadata = new
-                        {
-                            enum_support = HasEnumSupport(paramsType),
-                            default_support = HasDefaultSupport(paramsType),
-                            output_schema_support = HasOutputSchemaSupport(paramsType),
-                            custom_types = GetCustomTypes(paramsType)
-                        }
-                    });
+                    seen[name] = type;
+                    yield return (name, type, attr);
                 }
             }
-
-            return tools;
         }
 
         public static List<object> GetParameterSchema(Type paramsType)

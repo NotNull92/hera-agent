@@ -62,7 +62,7 @@ namespace HeraAgent
     public static class HttpServer
     {
         const int DEFAULT_PORT = 8090;
-        const int FALLBACK_PORT = 8092;
+        const int FALLBACK_PORT = 8091;
         const int MAX_PORT_ATTEMPTS = 10;
 
         static HttpListener s_Listener;

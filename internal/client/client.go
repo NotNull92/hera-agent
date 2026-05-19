@@ -32,11 +32,16 @@ type CommandRequest struct {
 // CommandResponse is the JSON body returned by Unity.
 // Data is raw JSON so callers can unmarshal into any shape.
 // Timings carries optional phase measurements (e.g. compile_ms, execute_ms, total_ms).
+// Code/Suggestions are populated by structured error envelopes (e.g. EXEC_COMPILE_ERROR).
+// AgentHint carries a short operational next-action for agent consumers.
 type CommandResponse struct {
-	Success bool             `json:"success"`
-	Message string           `json:"message"`
-	Data    json.RawMessage  `json:"data,omitempty"`
-	Timings map[string]int64 `json:"timings,omitempty"`
+	Success     bool             `json:"success"`
+	Message     string           `json:"message"`
+	Code        string           `json:"code,omitempty"`
+	Suggestions []string         `json:"suggestions,omitempty"`
+	AgentHint   string           `json:"agent_hint,omitempty"`
+	Data        json.RawMessage  `json:"data,omitempty"`
+	Timings     map[string]int64 `json:"timings,omitempty"`
 }
 
 // isProcessDead returns true only when the process is confirmed to not exist.

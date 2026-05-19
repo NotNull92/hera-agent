@@ -56,7 +56,8 @@ namespace HeraAgent.Tools
             var code = p.Get("code")
                 ?? (p.GetRaw("args") as JArray)?[0]?.ToString();
             if (string.IsNullOrEmpty(code))
-                return new ErrorResponse("'code' required");
+                return new ErrorResponse("MISSING_PARAM", "'code' required",
+                    suggestions: new List<string> { "Pass code as first positional arg or --code <text>" });
 
             var usingsToken = p.GetRaw("usings");
             var extraUsings = new List<string>();
@@ -102,7 +103,8 @@ namespace HeraAgent.Tools
             }
             catch (Exception ex)
             {
-                return new ErrorResponse($"Internal error preparing exec cache: {ex.Message}");
+                return new ErrorResponse("EXEC_INTERNAL_ERROR",
+                    $"Internal error preparing exec cache: {ex.Message}");
             }
 
             Assembly compiled = null;
@@ -167,7 +169,8 @@ namespace HeraAgent.Tools
                 {
                     loadSw.Stop();
                     timings["load_ms"] = loadSw.ElapsedMilliseconds;
-                    var err = new ErrorResponse($"Failed to load compiled assembly: {ex.Message}");
+                    var err = new ErrorResponse("EXEC_LOAD_FAILED",
+                        $"Failed to load compiled assembly: {ex.Message}");
                     ResponseTimings.Merge(err, timings);
                     return err;
                 }
@@ -236,9 +239,10 @@ namespace HeraAgent.Tools
                     var dotnet = ExecCompileCache.ResolveDotnet(dotnetOverride);
                     if (dotnet == null)
                         return new CompileResult { Error = new ErrorResponse(
+                            "EXEC_DOTNET_NOT_FOUND",
                             "Cannot find dotnet runtime under: " +
-                            EditorApplication.applicationContentsPath +
-                            "\nSpecify the path manually with --dotnet <path>") };
+                            EditorApplication.applicationContentsPath,
+                            suggestions: new List<string> { "Pass --dotnet <path-to-dotnet>" }) };
                     exe = dotnet;
                     args = $"exec \"{csc}\" {rspArg} /shared";
                 }
@@ -250,9 +254,10 @@ namespace HeraAgent.Tools
                 else
                 {
                     return new CompileResult { Error = new ErrorResponse(
+                        "EXEC_CSC_NOT_FOUND",
                         "Cannot find csc compiler under: " +
-                        EditorApplication.applicationContentsPath +
-                        "\nSpecify the path manually with --csc <path-to-csc.dll-or-csc.exe>") };
+                        EditorApplication.applicationContentsPath,
+                        suggestions: new List<string> { "Pass --csc <path-to-csc.dll-or-csc.exe>" }) };
                 }
 
                 var psi = new ProcessStartInfo
@@ -267,20 +272,55 @@ namespace HeraAgent.Tools
                     StandardErrorEncoding = Encoding.UTF8,
                 };
 
-                using (var proc = Process.Start(psi))
+                Process proc;
+                try
+                {
+                    proc = Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    return new CompileResult { Error = new ErrorResponse(
+                        "EXEC_LAUNCH_FAILED",
+                        $"Failed to launch compiler process: {ex.Message}",
+                        suggestions: new List<string>
+                        {
+                            "Check antivirus/sandbox is not blocking csc",
+                            $"Verify executable exists: {exe}"
+                        }) };
+                }
+
+                if (proc == null)
+                {
+                    return new CompileResult { Error = new ErrorResponse(
+                        "EXEC_LAUNCH_FAILED",
+                        "Process.Start returned null. Compiler did not launch.",
+                        suggestions: new List<string>
+                        {
+                            "Check antivirus/sandbox is not blocking csc",
+                            $"Verify executable exists: {exe}"
+                        }) };
+                }
+
+                using (proc)
                 {
                     var stdout = proc.StandardOutput.ReadToEnd();
                     var stderr = proc.StandardError.ReadToEnd();
                     if (!proc.WaitForExit(30000))
                     {
                         try { proc.Kill(); } catch { }
-                        return new CompileResult { Error = new ErrorResponse("Compilation timed out (30s). The compiler process was killed.") };
+                        return new CompileResult { Error = new ErrorResponse(
+                            "EXEC_COMPILE_TIMEOUT",
+                            "Compilation timed out (30s). The compiler process was killed.") };
                     }
 
                     if (proc.ExitCode != 0)
                     {
                         var output = string.IsNullOrEmpty(stderr) ? stdout : stderr;
-                        return new CompileResult { Error = new ErrorResponse($"Compile error:\n{FormatErrors(output)}") };
+                        var parsed = ParseErrors(output);
+                        return new CompileResult { Error = new ErrorResponse(
+                            "EXEC_COMPILE_ERROR",
+                            $"Compile error:\n{FormatErrors(output)}",
+                            data: new { compile_errors = parsed }) };
                     }
                 }
 
@@ -328,7 +368,8 @@ namespace HeraAgent.Tools
         {
             var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
             if (method == null)
-                return new ErrorResponse("Internal error: compiled type or method not found.");
+                return new ErrorResponse("EXEC_INTERNAL_ERROR",
+                    "Internal error: compiled type or method not found.");
 
             var execSw = Stopwatch.StartNew();
             object result;
@@ -341,7 +382,13 @@ namespace HeraAgent.Tools
                 execSw.Stop();
                 timings["execute_ms"] = execSw.ElapsedMilliseconds;
                 var inner = tie.InnerException ?? tie;
-                return new ErrorResponse($"Runtime error: {inner.GetType().Name}: {inner.Message}");
+                return new ErrorResponse("EXEC_RUNTIME_ERROR",
+                    $"Runtime error: {inner.GetType().Name}: {inner.Message}",
+                    data: new
+                    {
+                        exception_type = inner.GetType().FullName,
+                        stack_trace = inner.StackTrace
+                    });
             }
             execSw.Stop();
             timings["execute_ms"] = execSw.ElapsedMilliseconds;
@@ -368,6 +415,29 @@ namespace HeraAgent.Tools
                     errors.Add(trimmed);
             }
             return errors.Count > 0 ? string.Join("\n", errors) : raw;
+        }
+
+        private static List<object> ParseErrors(string raw)
+        {
+            var lines = raw.Split('\n');
+            var parsed = new List<object>();
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrEmpty(trimmed)) continue;
+                var m = Regex.Match(trimmed, @"\((\d+),(\d+)\):\s*error\s+(\w+):\s*(.+)");
+                if (m.Success)
+                {
+                    parsed.Add(new
+                    {
+                        line = int.Parse(m.Groups[1].Value),
+                        col = int.Parse(m.Groups[2].Value),
+                        error_code = m.Groups[3].Value,
+                        message = m.Groups[4].Value
+                    });
+                }
+            }
+            return parsed;
         }
 
         private static object Serialize(object obj, int depth)
@@ -398,17 +468,24 @@ namespace HeraAgent.Tools
             }
             if (type.IsValueType || type.IsClass)
             {
-                var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-                if (fields.Length > 0)
+                var r = new Dictionary<string, object>();
+                foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    var r = new Dictionary<string, object>();
-                    foreach (var f in fields)
-                    {
-                        try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1); }
-                        catch { r[f.Name] = "<error>"; }
-                    }
-                    return r;
+                    try { r[f.Name] = Serialize(f.GetValue(obj), depth + 1); }
+                    catch (Exception ex) { r[f.Name] = $"<error: {ex.GetType().Name}>"; }
                 }
+                foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    if (!prop.CanRead) continue;
+                    if (prop.GetIndexParameters().Length > 0) continue;
+                    try { r[prop.Name] = Serialize(prop.GetValue(obj), depth + 1); }
+                    catch (Exception ex)
+                    {
+                        var inner = ex is TargetInvocationException tie ? tie.InnerException ?? tie : ex;
+                        r[prop.Name] = $"<error: {inner.GetType().Name}>";
+                    }
+                }
+                if (r.Count > 0) return r;
             }
             return obj.ToString();
         }

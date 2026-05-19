@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace HeraAgent
 {
@@ -7,6 +8,10 @@ namespace HeraAgent
         public bool success = true;
         public string message;
         public object data;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string agent_hint;
+
         public Dictionary<string, long> timings;
 
         public SuccessResponse(string message, object data = null)
@@ -20,6 +25,13 @@ namespace HeraAgent
     {
         public bool success = false;
         public string message;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string code;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> suggestions;
+
         public object data;
         public Dictionary<string, long> timings;
 
@@ -27,6 +39,24 @@ namespace HeraAgent
         {
             this.message = message;
             this.data = data;
+        }
+
+        /// <summary>
+        /// Structured error: code is a stable enum-like string (e.g. EXEC_COMPILE_ERROR)
+        /// agents can branch on without string-matching the message.
+        /// </summary>
+        public ErrorResponse(string code, string message, object data = null, List<string> suggestions = null)
+        {
+            this.code = code;
+            this.message = message;
+            this.data = data;
+            this.suggestions = suggestions;
+        }
+
+        public static ErrorResponse WithCode(string code, string message, object data = null, params string[] suggestions)
+        {
+            return new ErrorResponse(code, message, data,
+                suggestions != null && suggestions.Length > 0 ? new List<string>(suggestions) : null);
         }
     }
 

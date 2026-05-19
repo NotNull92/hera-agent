@@ -36,11 +36,16 @@ namespace HeraAgent
         static async Task<object> DispatchInternal(string command, JObject parameters)
         {
             if (command == "list")
-                return new SuccessResponse("Available tools", ToolDiscovery.GetToolSchemas());
+                return HandleList(parameters);
 
             var handler = ToolDiscovery.FindHandler(command);
             if (handler == null)
-                return new ErrorResponse($"Unknown command: {command}");
+                return new ErrorResponse("UNKNOWN_COMMAND",
+                    $"Unknown command: {command}",
+                    suggestions: new System.Collections.Generic.List<string>
+                    {
+                        "Run 'hera-agent list --names' to see all tools"
+                    });
 
             try
             {
@@ -87,6 +92,30 @@ namespace HeraAgent
                 UnityEngine.Debug.LogException(inner);
                 return new ErrorResponse($"{command} failed: {inner.Message}");
             }
+        }
+
+        static object HandleList(JObject parameters)
+        {
+            var tool = parameters?["tool"]?.ToString();
+            if (!string.IsNullOrEmpty(tool))
+            {
+                var schema = ToolDiscovery.GetToolSchema(tool);
+                if (schema == null)
+                    return new ErrorResponse("UNKNOWN_TOOL",
+                        $"Tool not found: {tool}",
+                        suggestions: new System.Collections.Generic.List<string>
+                        {
+                            "Run 'hera-agent list --names' to see all tools"
+                        });
+                return new SuccessResponse($"Tool: {tool}", schema);
+            }
+
+            var namesOnly = parameters?["names"]?.Type == JTokenType.Boolean
+                && parameters["names"].Value<bool>();
+            if (namesOnly)
+                return new SuccessResponse("Available tools", ToolDiscovery.GetToolNames());
+
+            return new SuccessResponse("Available tools", ToolDiscovery.GetToolSchemas());
         }
     }
 }

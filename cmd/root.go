@@ -218,12 +218,22 @@ func printResponse(resp *client.CommandResponse) {
 		if msg == "" {
 			msg = "unknown error"
 		}
+		prefix := "Error"
+		if resp.Code != "" {
+			prefix = "Error [" + resp.Code + "]"
+		}
 		if len(resp.Data) > 0 && string(resp.Data) != "null" {
-			fmt.Fprintf(os.Stderr, "Error: %s\nDetails: %s\n", msg, string(resp.Data))
+			fmt.Fprintf(os.Stderr, "%s: %s\nDetails: %s\n", prefix, msg, string(resp.Data))
 		} else {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", msg)
+			fmt.Fprintf(os.Stderr, "%s: %s\n", prefix, msg)
+		}
+		for _, s := range resp.Suggestions {
+			fmt.Fprintf(os.Stderr, "  Hint: %s\n", s)
 		}
 		return
+	}
+	if resp.AgentHint != "" {
+		fmt.Fprintf(os.Stderr, "[hera-agent] hint: %s\n", resp.AgentHint)
 	}
 
 	if len(resp.Data) > 0 && string(resp.Data) != "null" {
@@ -443,7 +453,9 @@ Profiler:
   profiler clear                 Clear all captured frames
 
 Custom Tools:
-  list                          List all registered tools with parameter schemas
+  list                          List tools (slim: name + description + schema)
+  list --names                  Names only (one entry per tool — token-efficient)
+  list --tool <name>            Full schema for a single tool (params + output + metadata)
   <name>                        Call a custom tool directly
   <name> --params '{"k":"v"}'   Call with JSON parameters
 
@@ -673,12 +685,21 @@ Examples:
   hera-agent test --mode EditMode --filter MyNamespace.MyTests.SpecificTest
 `)
 	case "list":
-		fmt.Print(`Usage: hera-agent list
+		fmt.Print(`Usage: hera-agent list [options]
 
-List all registered tools (built-in + custom) with parameter schemas.
+List registered tools (built-in + custom).
 
-Example:
+Default output is slim — one entry per tool with name, description, and schema.
+For full per-tool detail (output_schema + metadata) use --tool <name>.
+
+Options:
+  --names            Names only — one line per tool (most token-efficient)
+  --tool <name>      Full schema for a single tool
+
+Examples:
   hera-agent list
+  hera-agent list --names
+  hera-agent list --tool exec
 `)
 	case "status":
 		fmt.Print(`Usage: hera-agent status

@@ -157,7 +157,7 @@ hera-agent console --type error
 | `screenshot` | Scene 또는 Game 뷰 캡처 |
 | `profiler` | 프로파일러 계층 읽기, 녹화 제어 |
 | `reserialize` | 텍스트 편집 후 YAML 정제 |
-| `list` | 사용 가능한 모든 툴 및 스키마 출력 |
+| `list` | 슬림 출력 (기본); `--names` / `--tool <name>` 으로 토큰 효율 조회 |
 | `status` | 연결 상태 및 프로젝트 정보 |
 | `update` | 바이너리 자동 업데이트 |
 | `install` | CLI를 PATH에 설치 |

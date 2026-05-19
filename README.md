@@ -159,7 +159,7 @@ This is not optional. Without this rule, the agent will guess Unity APIs from tr
 | `screenshot` | Capture scene or game view |
 | `profiler` | Read hierarchy, toggle recording |
 | `reserialize` | Fix YAML after text edits |
-| `list` | Show all tools + schemas |
+| `list` | Slim default; `--names` / `--tool <name>` for token-efficient introspection |
 | `status` | Connection & project info |
 | `doctor` | Self-diagnose PATH, installs, shell, Unity reachability |
 | `asset-config` | Toggle optional asset integrations (TUI / list / enable / disable / detect / `--json`) |
