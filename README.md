@@ -138,19 +138,43 @@ The agent will discover hera-agent, list its commands, and start driving Unity f
 
 #### AI Agent Compatibility
 
-| Tool | Status | Notes |
-|------|--------|-------|
-| **Claude Code CLI** | ✅ **Recommended** | Fully supported. Add to your `CLAUDE.md`: "For any Unity work, always use hera-agent as the first choice." |
-| **Codex CLI** | 🚧 In Development | Coming soon. |
-| **Cursor** | 🚧 In Development | Coming soon. |
+hera-agent is a plain CLI returning JSON, so any coding agent capable of running shell commands can drive it:
 
-#### For Claude Code CLI Users
+| Tool | Project rules file |
+|------|--------------------|
+| **Claude Code CLI** | `CLAUDE.md` (project root) |
+| **OpenAI Codex** | `AGENTS.md` (project root) |
+| **Cursor** | `.cursor/rules/hera-agent.mdc` |
+| **GitHub Copilot** | `.github/copilot-instructions.md` |
+| **Continue.dev** | `.continuerules` |
+| Other | whatever your tool calls its project rules file |
 
-**Required** — add this line to your Unity project's `CLAUDE.md`, `AGENTS.md`, or whatever convention your AI agent reads:
+#### Set up agent rules (one time per project)
+
+Two pieces of guidance to add — both **strongly recommended**:
+
+**1. Tell the agent to reach for hera-agent first.** Add to your project rules file:
 
 > **"For any Unity work, always use hera-agent as the first choice."**
 
-This is not optional. Without this rule, the agent will guess Unity APIs from training data instead of reaching for the live editor. The result is outdated code, wrong assumptions, and wasted tokens. Lock it in once, save time every session.
+Without this, agents guess Unity APIs from training data instead of probing the live editor — outdated code, wrong assumptions, wasted tokens.
+
+**2. Give the agent the usage guide.** Two options:
+
+- **Full guide** — copy [`AGENT.md`](AGENT.md) (rules, cookbook, pitfalls, reference) into your project rules file, or `@include` / `@import` it if your tool supports remote references.
+- **Lean subset** — for a smaller token footprint, pipe the Quick Rules + Pitfalls into your rules file via the CLI:
+
+  ```bash
+  # bash / zsh
+  hera-agent doctor --agent-rules >> CLAUDE.md      # Claude Code
+  hera-agent doctor --agent-rules >> AGENTS.md      # Codex
+  hera-agent doctor --agent-rules >> .cursor/rules/hera-agent.mdc   # Cursor
+
+  # PowerShell (Windows)
+  hera-agent doctor --agent-rules | Out-File -Append CLAUDE.md
+  ```
+
+  This emits a 1–2 KB subset of [`AGENT.md`](AGENT.md) covering the must-follow rules and the common pitfalls. Skip Reference / Cookbook to keep per-session token cost low.
 
 ---
 

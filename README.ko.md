@@ -136,11 +136,45 @@ hera-agent console --type error
 
 에이전트가 hera-agent를 발견해서 명령어를 나열하고, 알아서 Unity를 조종하기 시작합니다.
 
-**규칙으로 고정 (권장)** — Unity 프로젝트의 `CLAUDE.md`, `AGENTS.md` 등 AI 에이전트가 읽는 설정 문서에 다음 한 줄을 추가하세요:
+#### AI 에이전트 호환성
+
+hera-agent는 JSON을 반환하는 평범한 CLI이므로, 셸 명령을 실행할 수 있는 모든 코딩 에이전트가 사용할 수 있습니다:
+
+| 도구 | 프로젝트 규칙 파일 |
+|------|--------------------|
+| **Claude Code CLI** | `CLAUDE.md` (프로젝트 루트) |
+| **OpenAI Codex** | `AGENTS.md` (프로젝트 루트) |
+| **Cursor** | `.cursor/rules/hera-agent.mdc` |
+| **GitHub Copilot** | `.github/copilot-instructions.md` |
+| **Continue.dev** | `.continuerules` |
+| 그 외 | 도구가 사용하는 규칙 파일 |
+
+#### 에이전트 규칙 설정 (프로젝트당 1회)
+
+두 가지 규칙을 추가하세요 — 둘 다 **강력히 권장**합니다.
+
+**1. hera-agent를 우선 사용하도록 지시**. 프로젝트 규칙 파일에 추가:
 
 > **"유니티 작업의 경우 반드시 hera-agent를 사용해"**
 
-매번 LLM이 학습 데이터에서 Unity API를 추측하는 대신, 항상 라이브 에디터에 손을 뻗게 만듭니다.
+이게 없으면 에이전트는 학습 데이터에서 Unity API를 추측합니다 — 구버전 코드, 잘못된 가정, 토큰 낭비.
+
+**2. 사용 가이드를 에이전트에 주입**. 두 가지 옵션:
+
+- **전체 가이드** — [`AGENT.md`](AGENT.md) (규칙, 쿡북, 함정, 레퍼런스) 를 프로젝트 규칙 파일에 복사하거나, 도구가 원격 참조를 지원하면 `@include` / `@import`.
+- **린 서브셋** — 토큰 부담을 줄이려면 CLI로 Quick Rules + Pitfalls 만 규칙 파일에 추가:
+
+  ```bash
+  # bash / zsh
+  hera-agent doctor --agent-rules >> CLAUDE.md      # Claude Code
+  hera-agent doctor --agent-rules >> AGENTS.md      # Codex
+  hera-agent doctor --agent-rules >> .cursor/rules/hera-agent.mdc   # Cursor
+
+  # PowerShell (Windows)
+  hera-agent doctor --agent-rules | Out-File -Append CLAUDE.md
+  ```
+
+  [`AGENT.md`](AGENT.md) 중 must-follow 규칙과 자주 빠지는 함정만 뽑은 1–2 KB 분량. Reference / Cookbook 은 생략해서 매 세션 토큰 비용을 낮춤.
 
 ---
 

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — CLI v0.0.26
+
+- `AGENT.md` at the repo root — a guide for AI coding agents (Claude Code,
+  Codex, Cursor, Copilot, Continue.dev, etc.) describing how to use
+  hera-agent token-efficiently. Includes Quick Rules, Tool Selection
+  cheatsheet, Cookbook, Pitfalls, and Reference. Tool-neutral: the same
+  file can be loaded into any project's agent rules.
+- `hera-agent doctor --agent-rules` — prints the Quick Rules + Pitfalls
+  subset of AGENT.md to stdout. Designed to be appended to a project's
+  agent rules file:
+  ```bash
+  hera-agent doctor --agent-rules >> CLAUDE.md          # Claude Code
+  hera-agent doctor --agent-rules >> AGENTS.md          # Codex
+  hera-agent doctor --agent-rules >> .cursor/rules/hera-agent.mdc  # Cursor
+  hera-agent doctor --agent-rules >> .github/copilot-instructions.md  # Copilot
+  ```
+- README "Using with AI Agents" section expanded to list the rules files
+  for all major coding agents, plus full/lean adoption paths.
+
 ### Fixed — CLI v0.0.25
 
 - `hera-agent exec` no longer hangs in non-TTY shells where stdin is open but

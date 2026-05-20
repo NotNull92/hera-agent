@@ -548,6 +548,8 @@ Diagnostics:
   doctor                        Self-check: binary path, PATH resolution,
                                 duplicate installs, shell hints, Unity instances
   doctor --json                 Same data, JSON envelope for agent parsing
+  doctor --agent-rules          Print Quick Rules + Pitfalls subset of AGENT.md
+                                (append to your project's CLAUDE.md / agent rules)
 
 Update:
   update                        Update to the latest version
@@ -844,11 +846,20 @@ Does NOT require Unity to be running. Use this first when 'hera-agent' is
 not found, points at the wrong copy, or can't see your Unity Editor.
 
 Options:
-  --json   Emit structured envelope (binary, shell, unity) for agents.
+  --json           Emit structured envelope (binary, shell, unity) for agents.
+  --agent-rules    Print the Quick Rules + Pitfalls subset of AGENT.md.
+                   Designed to be appended to your project's AI rules file
+                   so the agent has lean usage guidance loaded every session.
+                   Use whatever filename your agent reads:
+                       hera-agent doctor --agent-rules >> CLAUDE.md           # Claude Code
+                       hera-agent doctor --agent-rules >> AGENTS.md           # Codex
+                       hera-agent doctor --agent-rules >> .cursor/rules/hera-agent.mdc   # Cursor
+                       hera-agent doctor --agent-rules >> .github/copilot-instructions.md   # Copilot
 
 Examples:
   hera-agent doctor
   hera-agent doctor --json
+  hera-agent doctor --agent-rules >> CLAUDE.md
 
 Environment:
   HERA_AGENT_NO_PATH_CHECK=1   Silence the implicit per-command PATH warning.
