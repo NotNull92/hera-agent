@@ -130,11 +130,19 @@ hera-agent console --type error
 
 ### 3. Let your AI agent take over
 
-**Discover** — open Claude Code CLI or Codex in any terminal and ask:
+**Discover** — open Claude Code CLI in any terminal and ask:
 
 > **"Check whether the hera-agent CLI tool is installed and explore its capabilities."**
 
 The agent will discover hera-agent, list its commands, and start driving Unity for you.
+
+#### AI Agent Compatibility
+
+| Tool | Status | Notes |
+|------|--------|-------|
+| **Claude Code CLI** | ✅ **Recommended** | Fully supported. Add to your `CLAUDE.md`: "For any Unity work, always use hera-agent as the first choice." |
+| **Codex CLI** | 🚧 In Development | Coming soon. |
+| **Cursor** | 🚧 In Development | Coming soon. |
 
 #### For Claude Code CLI Users
 
