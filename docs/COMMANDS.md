@@ -90,6 +90,8 @@ echo '<code>' | hera-agent exec [flags]
 | `--csc` | Path to csc compiler | Auto-detected |
 | `--dotnet` | Path to dotnet runtime | Auto-detected |
 | `--no-cache` | Skip compile/assembly cache (debug only) | `false` |
+| `--depth` | Serialize depth for return value (max 8). Unity Objects use shallow `{name, type, instanceID}` form when `< 3`. | `1` |
+| `--stacktrace` | Runtime error stack trace: `none`, `user`, `full` | `user` |
 
 ```bash
 # Basic execution
@@ -103,6 +105,9 @@ echo 'return EditorSceneManager.GetActiveScene().name;' | hera-agent exec
 
 # Custom usings for ECS
 hera-agent exec "return World.All.Count;" --usings Unity.Entities
+
+# Deep object reflection (Unity Object returns full properties at depth >= 3)
+hera-agent exec "return GameObject.Find(\"Main Camera\").transform;" --depth 3
 ```
 
 **Default usings**: `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Reflection`, `System.Threading.Tasks`, `UnityEngine`, `UnityEngine.SceneManagement`, `UnityEditor`, `UnityEditor.SceneManagement`, `UnityEditorInternal`
@@ -123,14 +128,15 @@ hera-agent console [flags]
 
 | Flag | Description | Default |
 |:---|:---|:---|
-| `--lines` | Limit to N entries | All |
+| `--lines` | Cap to N entries (use `--lines 0` for unlimited) | `20` |
 | `--type` | Comma-separated: `error`, `warning`, `log` | `error,warning,log` |
 | `--stacktrace` | `none`, `user`, `full` | `user` |
 | `--clear` | Clear console after reading | `false` |
 
 ```bash
 hera-agent console
-hera-agent console --lines 20 --type error
+hera-agent console --lines 50 --type error
+hera-agent console --lines 0           # disable cap (returns every entry)
 hera-agent console --stacktrace full
 hera-agent console --clear
 ```

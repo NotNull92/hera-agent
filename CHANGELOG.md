@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Connector 0.0.20 / CLI (next tag)
+
+Response token-cost reduction pass (see `docs/issues/token-cost-reduction.md`).
+All items below shrink the bytes a calling agent reads back without changing
+the underlying tool semantics.
+
+**Non-breaking (CLI):**
+- CLI emits compact JSON instead of 2-space-indented when stdout is piped
+  (any non-TTY, or `HERA_AGENT_QUIET=1`). Human terminals still see indented.
+- `[hera-agent] compiling...` stderr banner suppressed in non-TTY mode.
+- `Update available:` notice suppressed in non-TTY mode.
+
+**Connector — breaking defaults (override available):**
+- `exec --depth` default lowered from `3` to `1`. Unity Objects
+  (`Transform`, `GameObject`, `Scene`, ...) now serialize as
+  `{name, type, instanceID}` unless `--depth >= 3`. Pass `--depth 3` to
+  restore the prior deep-reflection behavior.
+- `exec` runtime errors default to `--stacktrace user`: internal Unity /
+  System / reflection frames are filtered out. Pass `--stacktrace full`
+  for the previous raw stack, or `--stacktrace none` to omit it entirely.
+- `exec` compile-error message is now `Compile error: L<n> CS<code>: <msg> (+N more)`.
+  The full structured list is still in `data.compile_errors` — agents
+  branching on `code == "EXEC_COMPILE_ERROR"` are unaffected; code that
+  string-matched the multi-line message format will need updating.
+- `console --lines` defaults to `20` (was unlimited). Use `--lines 0` for
+  unlimited.
+- `console` response omits `since`, `last_cursor`, `truncated`,
+  `total_in_console`, `matched` fields when they equal their trivial
+  default (no pagination, no filtering, no truncation).
+- Collection truncation marker inside `exec` serialized return changed
+  from `{"__truncated": true, "returned": 100, "hint": "..."}` to the
+  short string `"__truncated:100"` (appended as the last item).
+
+
+
 ## [0.0.9] - 2025-05-15
 
 ### Fixed

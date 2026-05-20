@@ -49,8 +49,11 @@ namespace HeraAgent.Tools
             [ToolParameter("Skip compile/assembly cache. Forces a fresh csc invocation.")]
             public bool NoCache { get; set; }
 
-            [ToolParameter("Max object graph depth in serialized return value (default 3, max 8).")]
+            [ToolParameter("Max object graph depth in serialized return value (default 1, max 8). Unity Objects use shallow form (name/type/instanceID) when depth < 3.")]
             public int Depth { get; set; }
+
+            [ToolParameter("Stack trace mode for runtime errors: none, user (default, internal frames filtered), full.")]
+            public string Stacktrace { get; set; }
         }
 
         public static object HandleCommand(JObject parameters)
@@ -76,11 +79,12 @@ namespace HeraAgent.Tools
             var dotnetOverride = p.Get("dotnet");
             var noCache = p.GetBool("no_cache") || p.GetBool("nocache") || p.GetBool("no-cache");
             var depth = ClampDepth(p.GetInt("depth") ?? 0);
+            var stacktrace = (p.Get("stacktrace") ?? "user").ToLowerInvariant();
 
-            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth);
+            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth, stacktrace);
         }
 
-        private const int DefaultSerializeDepth = 3;
+        private const int DefaultSerializeDepth = 1;
         private const int MaxSerializeDepth = 8;
 
         private static int ClampDepth(int requested)
@@ -106,7 +110,7 @@ namespace HeraAgent.Tools
             return sb.ToString();
         }
 
-        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth)
+        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth, string stacktrace)
         {
             var timings = new Dictionary<string, long>();
             string cacheKey;
@@ -198,7 +202,7 @@ namespace HeraAgent.Tools
             }
 
             timings["cache"] = cacheState;
-            var result = Invoke(compiled, timings, depth);
+            var result = Invoke(compiled, timings, depth, stacktrace);
             ResponseTimings.Merge(result, timings);
 
             // For --no-cache we own the ALC and must unload it. Serialize already
@@ -342,9 +346,12 @@ namespace HeraAgent.Tools
                         var stderr = stderrSb.ToString();
                         var output = string.IsNullOrEmpty(stderr) ? stdout : stderr;
                         var parsed = ParseErrors(output);
+                        var summary = parsed.Count > 0
+                            ? FormatFirstError(parsed[0]) + (parsed.Count > 1 ? $" (+{parsed.Count - 1} more)" : "")
+                            : "compile failed";
                         return new CompileResult { Error = new ErrorResponse(
                             "EXEC_COMPILE_ERROR",
-                            $"Compile error:\n{FormatErrors(output)}",
+                            $"Compile error: {summary}",
                             data: new { compile_errors = parsed }) };
                     }
                 }
@@ -389,7 +396,7 @@ namespace HeraAgent.Tools
             return new LoadedAssembly { Assembly = Assembly.Load(bytes), LoadContext = null };
         }
 
-        private static object Invoke(Assembly compiled, Dictionary<string, long> timings, int depth)
+        private static object Invoke(Assembly compiled, Dictionary<string, long> timings, int depth, string stacktraceMode)
         {
             var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
             if (method == null)
@@ -406,14 +413,7 @@ namespace HeraAgent.Tools
             {
                 execSw.Stop();
                 timings["execute_ms"] = execSw.ElapsedMilliseconds;
-                var inner = tie.InnerException ?? tie;
-                return new ErrorResponse("EXEC_RUNTIME_ERROR",
-                    $"Runtime error: {inner.GetType().Name}: {inner.Message}",
-                    data: new
-                    {
-                        exception_type = inner.GetType().FullName,
-                        stack_trace = inner.StackTrace
-                    });
+                return BuildRuntimeError(tie.InnerException ?? tie, stacktraceMode);
             }
             execSw.Stop();
             timings["execute_ms"] = execSw.ElapsedMilliseconds;
@@ -424,6 +424,51 @@ namespace HeraAgent.Tools
             serSw.Stop();
             timings["serialize_ms"] = serSw.ElapsedMilliseconds;
             return new SuccessResponse("OK", serialized);
+        }
+
+        private static object BuildRuntimeError(Exception inner, string mode)
+        {
+            object data;
+            switch (mode)
+            {
+                case "none":
+                    data = new { exception_type = inner.GetType().FullName };
+                    break;
+                case "full":
+                    data = new { exception_type = inner.GetType().FullName, stack_trace = inner.StackTrace };
+                    break;
+                default: // "user"
+                    data = new { exception_type = inner.GetType().FullName, stack_trace = FilterUserFrames(inner.StackTrace) };
+                    break;
+            }
+            return new ErrorResponse("EXEC_RUNTIME_ERROR",
+                $"Runtime error: {inner.GetType().Name}: {inner.Message}",
+                data: data);
+        }
+
+        private static string FilterUserFrames(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return raw;
+            var lines = raw.Split('\n');
+            var sb = new StringBuilder();
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimEnd();
+                if (string.IsNullOrEmpty(trimmed)) continue;
+                if (trimmed.Contains("at UnityEngine.") ||
+                    trimmed.Contains("at UnityEditor.") ||
+                    trimmed.Contains("at System.") ||
+                    // Mono prefixes managed-to-native trampolines that hide System.* —
+                    // e.g. "at (wrapper managed-to-native) System.Reflection.RuntimeMethodInfo.InternalInvoke"
+                    trimmed.Contains("(wrapper") ||
+                    trimmed.Contains("System.Reflection") ||
+                    trimmed.Contains("RuntimeMethodHandle.InvokeMethod") ||
+                    trimmed.Contains("MethodBase.Invoke"))
+                    continue;
+                if (sb.Length > 0) sb.Append('\n');
+                sb.Append(trimmed);
+            }
+            return sb.ToString();
         }
 
         private static string FormatErrors(string raw)
@@ -443,10 +488,10 @@ namespace HeraAgent.Tools
             return errors.Count > 0 ? string.Join("\n", errors) : raw;
         }
 
-        private static List<object> ParseErrors(string raw)
+        private static List<Dictionary<string, object>> ParseErrors(string raw)
         {
             var lines = raw.Split('\n');
-            var parsed = new List<object>();
+            var parsed = new List<Dictionary<string, object>>();
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
@@ -454,16 +499,25 @@ namespace HeraAgent.Tools
                 var m = Regex.Match(trimmed, @"\((\d+),(\d+)\):\s*error\s+(\w+):\s*(.+)");
                 if (m.Success)
                 {
-                    parsed.Add(new
+                    parsed.Add(new Dictionary<string, object>
                     {
-                        line = int.Parse(m.Groups[1].Value),
-                        col = int.Parse(m.Groups[2].Value),
-                        error_code = m.Groups[3].Value,
-                        message = m.Groups[4].Value
+                        ["line"] = int.Parse(m.Groups[1].Value),
+                        ["col"] = int.Parse(m.Groups[2].Value),
+                        ["error_code"] = m.Groups[3].Value,
+                        ["message"] = m.Groups[4].Value
                     });
                 }
             }
             return parsed;
+        }
+
+        private static string FormatFirstError(Dictionary<string, object> e)
+        {
+            object code = null, msg = null, line = null;
+            e.TryGetValue("error_code", out code);
+            e.TryGetValue("message", out msg);
+            e.TryGetValue("line", out line);
+            return $"L{line} {code}: {msg}";
         }
 
         private static object Serialize(object obj, int depth, int maxDepth, HashSet<object> visited)
@@ -474,6 +528,24 @@ namespace HeraAgent.Tools
             if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal)) return obj;
             if (type.IsEnum) return obj.ToString();
             if (type.Name.StartsWith("FixedString")) return obj.ToString();
+
+            // Unity Objects default to a shallow shape (name/type/instanceID) unless
+            // the caller explicitly asks for deep reflection via --depth >= 3.
+            // Reflecting Transform/GameObject/Scene at depth=3 explodes to 4KB+ of
+            // matrix/vector noise that LLM callers almost never need.
+            var isUnityObject = obj is UnityEngine.Object;
+            if (isUnityObject && maxDepth < 3)
+            {
+                var uo = (UnityEngine.Object)obj;
+                var shallow = new Dictionary<string, object>
+                {
+                    ["type"] = type.Name
+                };
+                try { shallow["name"] = uo != null ? uo.name : null; } catch { }
+                try { shallow["instanceID"] = uo.GetInstanceID(); } catch { }
+                return shallow;
+            }
+
             if (obj is IDictionary dict)
             {
                 var r = new Dictionary<string, object>();
@@ -482,11 +554,6 @@ namespace HeraAgent.Tools
                 return r;
             }
 
-            // Unity Objects (Component, ScriptableObject, etc.) implement IEnumerable
-            // for children iteration on some subtypes. Serialize as object first so
-            // properties (Transform.position, Scene.name, ...) survive instead of
-            // returning an empty children list.
-            var isUnityObject = obj is UnityEngine.Object;
             if (!isUnityObject && obj is IEnumerable enumerable)
             {
                 const int limit = 100;
@@ -499,15 +566,7 @@ namespace HeraAgent.Tools
                     list.Add(Serialize(item, depth + 1, maxDepth, visited));
                     count++;
                 }
-                if (truncated)
-                {
-                    list.Add(new Dictionary<string, object>
-                    {
-                        ["__truncated"] = true,
-                        ["returned"] = limit,
-                        ["hint"] = $"output capped at {limit} items — filter at source or paginate"
-                    });
-                }
+                if (truncated) list.Add($"__truncated:{limit}");
                 return list;
             }
 

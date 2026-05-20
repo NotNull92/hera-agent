@@ -58,7 +58,7 @@ namespace HeraAgent.Tools
             [ToolParameter("Comma-separated log types: error, warning, log. Default: error,warning,log")]
             public string Type { get; set; }
 
-            [ToolParameter("Maximum number of log entries to return")]
+            [ToolParameter("Maximum number of log entries to return (default 20, use 0 for unlimited)")]
             public int Lines { get; set; }
 
             [ToolParameter("Stack trace mode: none (first line), user (user code frames only), full (raw). Default: user")]
@@ -107,11 +107,18 @@ namespace HeraAgent.Tools
             var types = type.Split(',').Select(t => t.Trim()).Where(t => t.Length > 0).ToList();
 
             int? count = p.GetInt("lines") ?? p.GetInt("count");
+            // Cap default at 20 entries so a quiet `console` call from an agent
+            // doesn't ship hundreds of log lines into context. Explicit `--lines 0`
+            // restores the previous unbounded behavior.
+            if (!count.HasValue) count = DefaultLineLimit;
+            else if (count.Value == 0) count = null;
             string stacktrace = p.Get("stacktrace", "user").ToLower();
             int since = p.GetInt("since") ?? 0;
 
             return GetEntries(types, count, stacktrace, since);
         }
+
+        private const int DefaultLineLimit = 20;
 
         private static object GetEntries(List<string> types, int? count, string stacktrace, int since)
         {
@@ -156,16 +163,19 @@ namespace HeraAgent.Tools
                 try { _endGettingEntriesMethod.Invoke(null, null); } catch { }
             }
 
-            return new SuccessResponse($"Retrieved {entries.Count} entries.", new
+            var data = new Dictionary<string, object>
             {
-                entries,
-                total_in_console = total,
-                matched = filteredTotal,
-                returned = entries.Count,
-                since,
-                last_cursor = lastIndex,
-                truncated,
-            });
+                ["entries"] = entries,
+                ["returned"] = entries.Count,
+            };
+            // Only emit pagination/filter meta when it differs from the trivial case
+            // (no filtering, no truncation, cursor at end of returned slice).
+            if (total != entries.Count) data["total_in_console"] = total;
+            if (filteredTotal != entries.Count) data["matched"] = filteredTotal;
+            if (since > 0) data["since"] = since;
+            if (lastIndex != entries.Count + since) data["last_cursor"] = lastIndex;
+            if (truncated) data["truncated"] = true;
+            return new SuccessResponse($"Retrieved {entries.Count} entries.", data);
         }
 
         private static string FormatMessage(string message, string mode)
