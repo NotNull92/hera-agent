@@ -54,6 +54,9 @@ namespace HeraAgent.Tools
 
             [ToolParameter("Stack trace mode for runtime errors: none, user (default, internal frames filtered), full.")]
             public string Stacktrace { get; set; }
+
+            [ToolParameter("Treat any LogError/LogException/LogAssert raised during execution as a failure (exit non-zero). Off by default for back-compat.")]
+            public bool Strict { get; set; }
         }
 
         public static object HandleCommand(JObject parameters)
@@ -80,8 +83,9 @@ namespace HeraAgent.Tools
             var noCache = p.GetBool("no_cache") || p.GetBool("nocache") || p.GetBool("no-cache");
             var depth = ClampDepth(p.GetInt("depth") ?? 0);
             var stacktrace = (p.Get("stacktrace") ?? "user").ToLowerInvariant();
+            var strict = p.GetBool("strict");
 
-            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth, stacktrace);
+            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth, stacktrace, strict);
         }
 
         private const int DefaultSerializeDepth = 1;
@@ -105,12 +109,15 @@ namespace HeraAgent.Tools
             sb.AppendLine("public static class __CliDynamic {");
             sb.AppendLine("  public static object Execute() {");
             sb.AppendLine(code);
+            // Fallthrough so snippets without a trailing `return` still compile.
+            // Unreachable when user code ends with its own return (CS0162 is suppressed).
+            sb.AppendLine("    return null;");
             sb.AppendLine("  }");
             sb.AppendLine("}");
             return sb.ToString();
         }
 
-        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth, string stacktrace)
+        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth, string stacktrace, bool strict)
         {
             var timings = new Dictionary<string, long>();
             string cacheKey;
@@ -202,7 +209,7 @@ namespace HeraAgent.Tools
             }
 
             timings["cache"] = cacheState;
-            var result = Invoke(compiled, timings, depth, stacktrace);
+            var result = Invoke(compiled, timings, depth, stacktrace, strict);
             ResponseTimings.Merge(result, timings);
 
             // For --no-cache we own the ALC and must unload it. Serialize already
@@ -241,7 +248,9 @@ namespace HeraAgent.Tools
                 rsp.AppendLine("-target:library");
                 rsp.AppendLine($"-out:\"{outFile}\"");
                 rsp.AppendLine("-nologo");
-                rsp.AppendLine("-nowarn:0105,1701,1702");
+                // 0162: unreachable code — the auto-appended `return null;` is
+                // unreachable when user code already ends with a return.
+                rsp.AppendLine("-nowarn:0105,0162,1701,1702");
                 rsp.AppendLine($"-langversion:{LangVersion}");
                 rsp.AppendLine($"@\"{refsRsp}\"");
                 rsp.AppendLine($"\"{srcFile}\"");
@@ -396,24 +405,49 @@ namespace HeraAgent.Tools
             return new LoadedAssembly { Assembly = Assembly.Load(bytes), LoadContext = null };
         }
 
-        private static object Invoke(Assembly compiled, Dictionary<string, long> timings, int depth, string stacktraceMode)
+        private static object Invoke(Assembly compiled, Dictionary<string, long> timings, int depth, string stacktraceMode, bool strict)
         {
             var method = compiled.GetType("__CliDynamic")?.GetMethod("Execute");
             if (method == null)
                 return new ErrorResponse("EXEC_INTERNAL_ERROR",
                     "Internal error: compiled type or method not found.");
 
+            // Strict mode: capture LogError/LogException/LogAssert raised by user code
+            // and surface them as a failure even if the snippet returned normally.
+            // Without this, `Debug.LogError(...); return null;` looks identical to
+            // success at the CLI/exit-code layer — agents can't tell.
+            var logged = strict ? new List<LoggedError>() : null;
+            Application.LogCallback handler = null;
+            if (strict)
+            {
+                handler = (string condition, string stack, LogType type) =>
+                {
+                    if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert)
+                        return;
+                    if (logged.Count >= 20) return; // cap to keep response bounded
+                    logged.Add(new LoggedError { type = type.ToString(), message = condition });
+                };
+                Application.logMessageReceived += handler;
+            }
+
             var execSw = Stopwatch.StartNew();
             object result;
             try
             {
-                result = method.Invoke(null, null);
+                try
+                {
+                    result = method.Invoke(null, null);
+                }
+                catch (TargetInvocationException tie)
+                {
+                    execSw.Stop();
+                    timings["execute_ms"] = execSw.ElapsedMilliseconds;
+                    return BuildRuntimeError(tie.InnerException ?? tie, stacktraceMode);
+                }
             }
-            catch (TargetInvocationException tie)
+            finally
             {
-                execSw.Stop();
-                timings["execute_ms"] = execSw.ElapsedMilliseconds;
-                return BuildRuntimeError(tie.InnerException ?? tie, stacktraceMode);
+                if (handler != null) Application.logMessageReceived -= handler;
             }
             execSw.Stop();
             timings["execute_ms"] = execSw.ElapsedMilliseconds;
@@ -423,7 +457,28 @@ namespace HeraAgent.Tools
                 new HashSet<object>(ReferenceEqualityComparer.Instance));
             serSw.Stop();
             timings["serialize_ms"] = serSw.ElapsedMilliseconds;
+
+            if (strict && logged.Count > 0)
+            {
+                var first = logged[0];
+                var summary = first.message != null && first.message.Length > 200
+                    ? first.message.Substring(0, 200) + "..."
+                    : first.message;
+                var msg = logged.Count == 1
+                    ? $"{first.type}: {summary}"
+                    : $"{first.type}: {summary} (+{logged.Count - 1} more)";
+                return new ErrorResponse("EXEC_LOGGED_ERROR",
+                    "Snippet logged error(s) in strict mode: " + msg,
+                    data: new { logged_errors = logged, returned = serialized });
+            }
+
             return new SuccessResponse("OK", serialized);
+        }
+
+        private class LoggedError
+        {
+            public string type;
+            public string message;
         }
 
         private static object BuildRuntimeError(Exception inner, string mode)

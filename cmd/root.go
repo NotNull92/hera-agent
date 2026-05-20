@@ -461,11 +461,12 @@ Console:
   console --clear               Clear console
 
 Execute C#:
-  exec "<code>"                 Run C# code in Unity (return required for output)
+  exec "<code>"                 Run C# code in Unity (return optional; null by default)
   echo '<code>' | exec          Pipe code via stdin (avoids shell escaping)
   exec --file path.cs           Load code from file (positional/stdin take precedence)
   exec "<code>" --usings x,y    Add extra using directives
   exec "<code>" --no-cache      Skip compile/assembly cache (debug only)
+  exec "<code>" --strict        Treat Debug.LogError/Exception during run as failure
 
 Log:
   log "<message>"               Write to Unity console (no compile cost)
@@ -640,6 +641,10 @@ Options:
                        Unity Objects (Transform, GameObject, ...) return as
                        {name, type, instanceID} unless --depth >= 3.
   --stacktrace <mode>  Runtime error stack trace: none, user (default), full.
+  --strict             Treat any LogError/LogException/LogAssert raised during the
+                       snippet as a failure (exit non-zero, EXEC_LOGGED_ERROR).
+                       Lets agents catch logical failures that would otherwise
+                       look identical to a clean run.
 
 Default usings: System, System.Collections.Generic, System.IO, System.Linq,
   System.Reflection, System.Threading.Tasks, UnityEngine,
@@ -663,7 +668,10 @@ File:
   argument is already present (those win over --file).
 
 Notes:
-  - Use 'return' for output, 'return null;' for void operations
+  - 'return <value>;' is captured as the response payload.
+  - A trailing 'return' is OPTIONAL — snippets without one resolve to null.
+  - 'return;' (no value) does NOT compile (Execute returns object). Use 'return null;'.
+  - --strict turns Debug.LogError/Exception/Assert into an EXEC_LOGGED_ERROR failure.
 `)
 	case "scene":
 		fmt.Print(`Usage: hera-agent scene <action> [target] [options]

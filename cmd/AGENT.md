@@ -29,7 +29,7 @@ Quick links:
 
 Numbered so you can grep "[Rule N]" when in doubt.
 
-**[Rule 1]** Default to `return null;` in `exec`. Side-effecting code (create objects, set properties, save scenes) should not return a verbose status string. The OK response is 3 bytes (`OK\n`); a hand-crafted summary string ships hundreds of bytes back into your context.
+**[Rule 1]** Default to no return (or `return null;`) in `exec`. Side-effecting code (create objects, set properties, save scenes) should not return a verbose status string. The OK response is 3 bytes (`OK\n`); a hand-crafted summary string ships hundreds of bytes back into your context. Since v0.0.26 the trailing `return` is **optional** — snippets without one resolve to `null` automatically.
 
 ```cs
 // Bad — your status string costs ~200 tokens
@@ -37,7 +37,12 @@ return $"Created Canvas with {n} buttons under {parent.name}";
 
 // Good — same work, 3 bytes
 return null;
+
+// Also good — omit the return entirely (v0.0.26+)
+new GameObject("X");
 ```
+
+> Caveat: `return;` (no value) still does NOT compile because `Execute()` returns `object`. Write `return null;` for early exits, or `throw new Exception("...")` for hard failures (see Rule 8).
 
 **[Rule 2]** Never return a `UnityEngine.Object` directly. `Transform`, `GameObject`, `Component`, `Scene`, `Material`, etc. expand to thousands of bytes of reflected properties.
 
@@ -71,6 +76,18 @@ Default `--depth` is `1`, which gives Unity Objects the shallow form `{name, typ
 **[Rule 6]** Runtime errors from `exec` return user-filtered stack traces by default. If you suspect the framework itself is the cause (e.g. Unity internal exception), pass `--stacktrace full` to see all frames.
 
 **[Rule 7]** Use the right tool for the job — see §2. `exec` is the universal hammer but it costs csc compile time and is harder to inspect. Dedicated commands (`scene info`, `console`, `status`) are faster and cheaper.
+
+**[Rule 8]** When you want a logical failure to be visible at the CLI exit-code layer, either **throw** (`throw new System.Exception("missing")` → `EXEC_RUNTIME_ERROR`, exit non-zero) or run with `--strict` so that any `Debug.LogError/LogException/LogAssert` raised during the snippet flips the response to `EXEC_LOGGED_ERROR`. Without one of these, `Debug.LogError("..."); return null;` is indistinguishable from a clean run by exit code — only the Unity console sees it.
+
+```cs
+// Off (default) — agent sees success even though "missing" was logged
+// hera-agent exec "Debug.LogError(\"missing\"); return null;"
+//   → exit 0, success
+
+// On — same code surfaces as EXEC_LOGGED_ERROR
+// hera-agent exec "Debug.LogError(\"missing\"); return null;" --strict
+//   → exit 1, code=EXEC_LOGGED_ERROR
+```
 
 ---
 
@@ -218,6 +235,21 @@ Logs cleared can't be recovered. If you're debugging, read first, then clear.
 
 Tools occasionally emit a one-line `hint:` to stderr when there's a non-obvious next action (e.g. "scene is dirty; save before close"). Read stderr alongside stdout — `2>&1` merges them.
 
+### 4.9 `return;` (no value) does not compile in `exec`
+
+Your snippet is wrapped in `static object Execute() { ... }`. A bare `return;` triggers `CS0126` ("an object of a type convertible to 'object' is required"). Use `return null;` for early exits, or omit the return entirely (v0.0.26+ falls through to `null`). `throw` also works and is preferred when the early exit represents a failure (exit non-zero via `EXEC_RUNTIME_ERROR`).
+
+```cs
+// Bad — CS0126
+if (canvas == null) { Debug.LogError("missing"); return; }
+
+// Good — explicit null
+if (canvas == null) { Debug.LogError("missing"); return null; }
+
+// Better when this is actually a failure — surfaces as EXEC_RUNTIME_ERROR
+if (canvas == null) throw new System.Exception("BootCanvas not found");
+```
+
 ---
 
 ## 5. Reference (skim on demand)
@@ -226,7 +258,7 @@ Tools occasionally emit a one-line `hint:` to stderr when there's a non-obvious 
 
 | Command | Purpose | Key flags |
 |---|---|---|
-| `exec <code>` | Run C# in Editor | `--usings`, `--check`, `--depth N`, `--stacktrace {none\|user\|full}`, `--no-cache` |
+| `exec <code>` | Run C# in Editor | `--usings`, `--check`, `--depth N`, `--stacktrace {none\|user\|full}`, `--strict`, `--no-cache` |
 | `console` | Read/clear log entries | `--type error,warning,log`, `--lines N`, `--stacktrace`, `--clear`, `--since N` |
 | `scene info` / `load` / `save` / `close` / `list` | Scene management | `--mode single\|additive\|additive_without_loading` (load) |
 | `editor play \| stop \| pause \| refresh` | Editor lifecycle | `--wait` (play), `--compile`, `--force` (refresh) |
@@ -260,6 +292,7 @@ Every command returns this JSON over HTTP (the CLI then prints just `data` to st
 Common `code` values you might branch on:
 - `EXEC_COMPILE_ERROR` — `data.compile_errors: [{line, col, error_code, message}, ...]`
 - `EXEC_RUNTIME_ERROR` — `data.exception_type`, `data.stack_trace` (user-filtered unless `--stacktrace full`)
+- `EXEC_LOGGED_ERROR` — `--strict` mode only. `data.logged_errors: [{type, message}, ...]`, `data.returned` is the value the snippet would have returned.
 - `EXEC_CSC_NOT_FOUND` / `EXEC_DOTNET_NOT_FOUND` — `suggestions[]` tells the user how to recover
 - `EXEC_COMPILE_TIMEOUT` — 30s csc timeout
 - `READCONSOLE_INIT_FAILED` — Unity internal API drift; `data.unity_version` for triage

@@ -25,6 +25,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ```
 - README "Using with AI Agents" section expanded to list the rules files
   for all major coding agents, plus full/lean adoption paths.
+- `exec` snippets no longer require a trailing `return`. Body falls through
+  to `return null;` automatically, eliminating the most common `CS0161`
+  ("not all code paths return a value") compile error. Explicit
+  `return <value>;` keeps working — the auto-appended return is unreachable
+  when user code already returns, and `CS0162` is suppressed so this
+  produces no warning. Bare `return;` (no value) still cannot compile
+  because `Execute()` returns `object`; use `return null;` for early exits.
+- `exec --strict` — treat any `Debug.LogError` / `LogException` / `LogAssert`
+  raised during the snippet as a failure. Surfaces as `EXEC_LOGGED_ERROR`
+  (exit non-zero), with `data.logged_errors` and `data.returned` so callers
+  can still see what the snippet would have returned. Off by default for
+  back-compat; opt in per call. Helpful for catching logical failures that
+  would otherwise be invisible to the CLI exit-code layer.
 
 ### Fixed — CLI v0.0.25
 
