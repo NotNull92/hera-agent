@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed — Connector 0.0.20 / CLI (next tag)
+### Fixed — CLI v0.0.25
+
+- `hera-agent exec` no longer hangs in non-TTY shells where stdin is open but
+  will never deliver an EOF — Cursor's shell, bash `$(...)` capture, compound
+  `cmd1; hera-agent exec ...`, and CI runners with detached stdin. Cursor users
+  no longer need the `$null |` workaround before `exec` calls. Real pipes
+  (`echo 'code' | hera-agent exec`) and file redirects (`hera-agent exec < code.cs`)
+  keep working unchanged.
+
+## [0.0.24] - 2026-05-20
+
+### Changed — Connector 0.0.20 / CLI v0.0.24
 
 Response token-cost reduction pass (see `docs/issues/token-cost-reduction.md`).
 All items below shrink the bytes a calling agent reads back without changing
