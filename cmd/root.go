@@ -114,7 +114,7 @@ func Execute() error {
 		if err != nil {
 			return nil, err
 		}
-		if command == "exec" {
+		if command == "exec" && !agentOutputMode() {
 			fmt.Fprintln(os.Stderr, "[hera-agent] compiling...")
 		}
 		return sendWithProgress(inst, command, params, timeout, flagVerbose)
@@ -249,7 +249,12 @@ func printResponse(resp *client.CommandResponse) {
 			if s, ok := pretty.(string); ok {
 				fmt.Println(s)
 			} else {
-				b, _ := json.MarshalIndent(pretty, "", "  ")
+				var b []byte
+				if agentOutputMode() {
+					b, _ = json.Marshal(pretty)
+				} else {
+					b, _ = json.MarshalIndent(pretty, "", "  ")
+				}
 				fmt.Println(string(b))
 			}
 		} else {
@@ -424,8 +429,8 @@ Editor Control:
   editor refresh --compile      Recompile scripts and wait until done
 
 Console:
-  console                       Read error & warning logs (default)
-  console --lines 20            Limit to N entries
+  console                       Read recent log entries (capped at 20 by default)
+  console --lines N             Cap to N entries (use --lines 0 for unlimited)
   console --type error,warning,log   Filter by log types (comma-separated)
   console --stacktrace full     Stack trace: none, user (default), full
   console --clear               Clear console
@@ -575,7 +580,7 @@ Examples:
 Read Unity console log entries.
 
 Options:
-  --lines <N>          Limit to N entries
+  --lines <N>          Cap to N entries (default 20, --lines 0 = unlimited)
   --type <types>       Comma-separated log types: error, warning, log (default: error,warning,log)
   --stacktrace <mode>  none: first line only
                         user: with stack trace, internal frames filtered (default)
@@ -584,7 +589,8 @@ Options:
 
 Examples:
   hera-agent console
-  hera-agent console --lines 20 --type error,warning,log
+  hera-agent console --lines 50 --type error,warning,log
+  hera-agent console --lines 0           # disable cap (returns every entry)
   hera-agent console --stacktrace user
   hera-agent console --type error --stacktrace full
   hera-agent console --clear
@@ -603,6 +609,10 @@ Options:
   --csc <path>         Path to csc compiler (csc.dll or csc.exe). Auto-detected if omitted.
   --dotnet <path>      Path to dotnet runtime. Auto-detected if omitted.
   --no-cache           Skip compile/assembly cache; force a fresh csc invocation.
+  --depth <N>          Max serialize depth for return value (default 1, max 8).
+                       Unity Objects (Transform, GameObject, ...) return as
+                       {name, type, instanceID} unless --depth >= 3.
+  --stacktrace <mode>  Runtime error stack trace: none, user (default), full.
 
 Default usings: System, System.Collections.Generic, System.IO, System.Linq,
   System.Reflection, System.Threading.Tasks, UnityEngine,

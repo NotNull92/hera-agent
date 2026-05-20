@@ -36,6 +36,9 @@ func prepareVersionCheckEnv(t *testing.T, version string) string {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	// printNotice suppresses output in agent mode (piped stdout). The test
+	// harness pipes stdout under `go test`, so force human mode explicitly.
+	t.Setenv("HERA_AGENT_QUIET", "0")
 
 	origVersion := Version
 	Version = version

@@ -110,5 +110,8 @@ func printUpdateNotice() {
 }
 
 func printNotice(current, latest string) {
+	if agentOutputMode() {
+		return
+	}
 	fmt.Fprintf(os.Stderr, "\nUpdate available: %s → %s\nRun \"hera-agent update\" to upgrade.\n", current, latest)
 }
