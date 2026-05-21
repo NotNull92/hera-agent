@@ -516,15 +516,8 @@ namespace HeraAgent.Tools
                     data = new { exception_type = inner.GetType().FullName, stack_trace = FilterUserFrames(inner.StackTrace) };
                     break;
             }
-            // Some Unity exceptions (MissingComponentException, MissingReferenceException,
-            // ...) ship multi-line Message bodies with an embedded `\n` between the
-            // primary fact and Unity's stock recovery advice. Left intact, the second
-            // line renders without a prefix on the CLI and reads as if hera-agent is
-            // chiming in with its own suggestion. Normalize to a single line.
-            var msg = (inner.Message ?? string.Empty)
-                .Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
             return new ErrorResponse("EXEC_RUNTIME_ERROR",
-                $"Your C# snippet threw {inner.GetType().Name}: {msg}",
+                $"Your C# snippet threw {inner.GetType().Name}: {inner.Message}",
                 data: data);
         }
 
