@@ -85,7 +85,16 @@ namespace HeraAgent.Tools
             var stacktrace = (p.Get("stacktrace") ?? "user").ToLowerInvariant();
             var strict = p.GetBool("strict");
 
-            return CompileAndExecute(BuildSource(code, extraUsings), cscOverride, dotnetOverride, noCache, depth, stacktrace, strict);
+            var built = BuildSource(code, extraUsings);
+            return CompileAndExecute(built.Source, built.UserCodeLineOffset, cscOverride, dotnetOverride, noCache, depth, stacktrace, strict);
+        }
+
+        private struct BuiltSource
+        {
+            public string Source;
+            // Subtract this from a csc-reported line number to get the
+            // corresponding line in the user's original snippet.
+            public int UserCodeLineOffset;
         }
 
         private const int DefaultSerializeDepth = 1;
@@ -97,7 +106,7 @@ namespace HeraAgent.Tools
             return requested > MaxSerializeDepth ? MaxSerializeDepth : requested;
         }
 
-        private static string BuildSource(string code, List<string> extraUsings)
+        private static BuiltSource BuildSource(string code, List<string> extraUsings)
         {
             var sb = new StringBuilder();
             foreach (var u in DefaultUsings)
@@ -114,10 +123,17 @@ namespace HeraAgent.Tools
             sb.AppendLine("    return null;");
             sb.AppendLine("  }");
             sb.AppendLine("}");
-            return sb.ToString();
+
+            // Wrapper layout before user code:
+            //   DefaultUsings.Length using lines + extraUsings.Count using lines
+            //   + 1 blank line + 1 class line + 1 method-open line.
+            // User code starts at line (offset + 1), so subtract offset to
+            // remap csc line numbers back to the user's original snippet.
+            int offset = DefaultUsings.Length + extraUsings.Count + 3;
+            return new BuiltSource { Source = sb.ToString(), UserCodeLineOffset = offset };
         }
 
-        private static object CompileAndExecute(string source, string cscOverride, string dotnetOverride, bool noCache, int depth, string stacktrace, bool strict)
+        private static object CompileAndExecute(string source, int userLineOffset, string cscOverride, string dotnetOverride, bool noCache, int depth, string stacktrace, bool strict)
         {
             var timings = new Dictionary<string, long>();
             string cacheKey;
@@ -167,7 +183,7 @@ namespace HeraAgent.Tools
             if (compiled == null)
             {
                 var compileSw = Stopwatch.StartNew();
-                var compileResult = CompileToBytes(source, cscOverride, dotnetOverride);
+                var compileResult = CompileToBytes(source, userLineOffset, cscOverride, dotnetOverride);
                 compileSw.Stop();
                 timings["compile_ms"] = compileSw.ElapsedMilliseconds;
                 if (compileResult.Error != null)
@@ -227,7 +243,7 @@ namespace HeraAgent.Tools
             public ErrorResponse Error;
         }
 
-        private static CompileResult CompileToBytes(string source, string cscOverride, string dotnetOverride)
+        private static CompileResult CompileToBytes(string source, int userLineOffset, string cscOverride, string dotnetOverride)
         {
             var utf8 = new UTF8Encoding(false);
             var tmpDir = Path.Combine(Path.GetTempPath(), "hera-agent-exec");
@@ -358,13 +374,13 @@ namespace HeraAgent.Tools
                         var stdout = stdoutSb.ToString();
                         var stderr = stderrSb.ToString();
                         var output = string.IsNullOrEmpty(stderr) ? stdout : stderr;
-                        var parsed = ParseErrors(output);
+                        var parsed = ParseErrors(output, userLineOffset);
                         var summary = parsed.Count > 0
                             ? FormatFirstError(parsed[0]) + (parsed.Count > 1 ? $" (+{parsed.Count - 1} more)" : "")
-                            : "compile failed";
+                            : "no diagnostics parsed from csc output";
                         return new CompileResult { Error = new ErrorResponse(
                             "EXEC_COMPILE_ERROR",
-                            $"Compile error: {summary}",
+                            $"Your C# snippet did not compile. {summary}",
                             data: new { compile_errors = parsed }) };
                     }
                 }
@@ -547,7 +563,7 @@ namespace HeraAgent.Tools
             return errors.Count > 0 ? string.Join("\n", errors) : raw;
         }
 
-        private static List<Dictionary<string, object>> ParseErrors(string raw)
+        private static List<Dictionary<string, object>> ParseErrors(string raw, int userLineOffset)
         {
             var lines = raw.Split('\n');
             var parsed = new List<Dictionary<string, object>>();
@@ -558,9 +574,17 @@ namespace HeraAgent.Tools
                 var m = Regex.Match(trimmed, @"\((\d+),(\d+)\):\s*error\s+(\w+):\s*(.+)");
                 if (m.Success)
                 {
+                    int rawLine = int.Parse(m.Groups[1].Value);
+                    // Remap to the user's snippet. Diagnostics that land inside
+                    // the synthetic wrapper (e.g. a bad `--usings` entry, which
+                    // is the user's input but lives above the user code block)
+                    // fall at or below the offset — keep the raw csc line in
+                    // that case so the user can still locate the problem.
+                    int userLine = rawLine - userLineOffset;
+                    if (userLine < 1) userLine = rawLine;
                     parsed.Add(new Dictionary<string, object>
                     {
-                        ["line"] = int.Parse(m.Groups[1].Value),
+                        ["line"] = userLine,
                         ["col"] = int.Parse(m.Groups[2].Value),
                         ["error_code"] = m.Groups[3].Value,
                         ["message"] = m.Groups[4].Value
