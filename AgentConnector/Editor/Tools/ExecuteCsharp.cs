@@ -517,7 +517,7 @@ namespace HeraAgent.Tools
                     break;
             }
             return new ErrorResponse("EXEC_RUNTIME_ERROR",
-                $"Runtime error: {inner.GetType().Name}: {inner.Message}",
+                $"Your C# snippet threw {inner.GetType().Name}: {inner.Message}",
                 data: data);
         }
 
@@ -540,6 +540,17 @@ namespace HeraAgent.Tools
                     trimmed.Contains("RuntimeMethodHandle.InvokeMethod") ||
                     trimmed.Contains("MethodBase.Invoke"))
                     continue;
+                if (trimmed.Contains("__CliDynamic.Execute"))
+                {
+                    // Synthetic wrapper frame. Without -debug there is no
+                    // useful line info, and the IL offset + assembly GUID
+                    // ("[0x000xx] in <hash>:0") are noise that makes the
+                    // trace read like an hera-agent internal. Reduce it
+                    // to a stable, user-meaningful marker.
+                    if (sb.Length > 0) sb.Append('\n');
+                    sb.Append("  at (your snippet)");
+                    continue;
+                }
                 if (sb.Length > 0) sb.Append('\n');
                 sb.Append(trimmed);
             }
