@@ -92,7 +92,6 @@ echo '<code>' | hera-agent exec [flags]
 | `--no-cache` | Skip compile/assembly cache (debug only) | `false` |
 | `--depth` | Serialize depth for return value (max 8). Unity Objects use shallow `{name, type, instanceID}` form when `< 3`. | `1` |
 | `--stacktrace` | Runtime error stack trace: `none`, `user`, `full` | `user` |
-| `--note` | One-line English summary of what this call is doing. Echoed to stderr; stripped before the request reaches Unity (zero compile/cache cost). Useful for agents annotating actions. | `""` |
 
 ```bash
 # Basic execution
@@ -109,10 +108,6 @@ hera-agent exec "return World.All.Count;" --usings Unity.Entities
 
 # Deep object reflection (Unity Object returns full properties at depth >= 3)
 hera-agent exec "return GameObject.Find(\"Main Camera\").transform;" --depth 3
-
-# Annotate an agent action so the intent appears alongside the response
-hera-agent exec --note "List ItemData assets" \
-  "return AssetDatabase.FindAssets(\"t:ItemData\").Length;"
 ```
 
 **Default usings**: `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`, `System.Reflection`, `System.Threading.Tasks`, `UnityEngine`, `UnityEngine.SceneManagement`, `UnityEditor`, `UnityEditor.SceneManagement`, `UnityEditorInternal`

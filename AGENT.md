@@ -89,17 +89,6 @@ Default `--depth` is `1`, which gives Unity Objects the shallow form `{name, typ
 //   → exit 1, code=EXEC_LOGGED_ERROR
 ```
 
-**[Rule 9]** When you invoke `exec` on a user's behalf, pass `--note "<one-line English summary>"` describing what the call is doing. The note is echoed to stderr (`[hera-agent] note: ...`) and stripped before the request reaches Unity — strictly presentational, zero compile/cache cost. Without it, transcripts show only the (often verbose) code and the result, leaving readers to reverse-engineer the intent.
-
-```bash
-# Bad — reader sees "12 ItemData stackTarget=3" with no context
-hera-agent exec "var g = AssetDatabase.FindAssets(\"t:ItemData\"); ..."
-
-# Good — intent visible alongside the response
-hera-agent exec --note "List ItemData assets and verify stackTarget" \
-  "var g = AssetDatabase.FindAssets(\"t:ItemData\"); ..."
-```
-
 ---
 
 ## 2. Tool Selection Cheatsheet
