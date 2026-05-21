@@ -33,6 +33,7 @@ func Execute() error {
 
 	args := os.Args[1:]
 	flagArgs, cmdArgs := splitArgs(args)
+	cmdArgs = extractAndPrintNote(cmdArgs)
 	if err := flag.CommandLine.Parse(flagArgs); err != nil {
 		fmt.Fprintf(os.Stderr, "flag parse error: %v\n", err)
 		os.Exit(1)
@@ -423,6 +424,31 @@ func readStdinIfPiped(args []string) []string {
 // splitArgs separates global flags (--port, --project, --timeout, --verbose)
 // from subcommand args. Global flags must be parsed by flag.CommandLine before
 // the subcommand runs.
+// extractAndPrintNote pulls a presentational `--note <text>` pair out of the
+// command args and echoes it to stderr, so agents can annotate a call with a
+// short description of what they are doing without polluting the request sent
+// to Unity. The note is stripped before buildParams runs, so it never reaches
+// the C# tool. We deliberately do NOT gate this on agentOutputMode: --note
+// only shows up because the caller asked for it, so the user intent is "echo
+// this", regardless of whether stdout is a tty. The note goes to stderr so
+// JSON consumers on stdout are unaffected either way.
+func extractAndPrintNote(args []string) []string {
+	rest := make([]string, 0, len(args))
+	var note string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--note" && i+1 < len(args) && !strings.HasPrefix(args[i+1], "--") {
+			note = args[i+1]
+			i++
+			continue
+		}
+		rest = append(rest, args[i])
+	}
+	if note != "" {
+		fmt.Fprintf(os.Stderr, "[hera-agent] note: %s\n", note)
+	}
+	return rest
+}
+
 func splitArgs(args []string) (flags, commands []string) {
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
@@ -467,6 +493,11 @@ Execute C#:
   exec "<code>" --usings x,y    Add extra using directives
   exec "<code>" --no-cache      Skip compile/assembly cache (debug only)
   exec "<code>" --strict        Treat Debug.LogError/Exception during run as failure
+
+Global:
+  --note "<text>"               One-line English summary of what this call is
+                                 doing. Echoed to stderr; not sent to Unity.
+                                 Useful for agents annotating their actions.
 
 Log:
   log "<message>"               Write to Unity console (no compile cost)
@@ -645,6 +676,12 @@ Options:
                        snippet as a failure (exit non-zero, EXEC_LOGGED_ERROR).
                        Lets agents catch logical failures that would otherwise
                        look identical to a clean run.
+  --note "<text>"      One-line English summary of what this exec call is doing.
+                       Echoed to stderr ([hera-agent] note: ...); strictly
+                       presentational — stripped before the request reaches
+                       Unity, so it has zero compile/cache cost. Recommended
+                       when an agent invokes exec on a user's behalf so the
+                       intent is visible alongside the response.
 
 Default usings: System, System.Collections.Generic, System.IO, System.Linq,
   System.Reflection, System.Threading.Tasks, UnityEngine,
@@ -658,6 +695,7 @@ Examples:
   echo 'Debug.Log("hello"); return null;' | hera-agent exec
   hera-agent exec "return World.All.Count;" --usings Unity.Entities
   hera-agent exec --file scripts/probe.cs
+  hera-agent exec --note "List ItemData assets" "return AssetDatabase.FindAssets(\"t:ItemData\").Length;"
 
 Stdin:
   Pipe code via stdin to avoid shell escaping issues.
