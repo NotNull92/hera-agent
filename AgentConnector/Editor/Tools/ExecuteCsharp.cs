@@ -251,6 +251,10 @@ namespace HeraAgent.Tools
                 // 0162: unreachable code — the auto-appended `return null;` is
                 // unreachable when user code already ends with a return.
                 rsp.AppendLine("-nowarn:0105,0162,1701,1702");
+                // Force English diagnostics so localized csc messages (e.g. CP949
+                // on Korean Windows) do not arrive in a non-UTF-8 encoding and
+                // surface as mojibake through StandardErrorEncoding = UTF-8.
+                rsp.AppendLine("-preferreduilang:en-US");
                 rsp.AppendLine($"-langversion:{LangVersion}");
                 rsp.AppendLine($"@\"{refsRsp}\"");
                 rsp.AppendLine($"\"{srcFile}\"");
